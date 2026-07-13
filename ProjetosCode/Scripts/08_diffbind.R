@@ -63,7 +63,11 @@ FDR_THRESHOLD <- 0.05
 #' presenca/ausencia de pico (ver CLAUDE.md S9.1).
 build_consensus_regions <- function(peak_files) {
   peaks_list <- lapply(peak_files, import_peaks)
-  all_peaks <- do.call(c, lapply(peaks_list, function(gr) granges(gr)))
+  ## unlist(GRangesList(...)), nao do.call(c, ...) -- este ultimo pode nao
+  ## disparar o dispatch S4 de c() para GRanges e devolver uma "list" comum
+  ## em vez de um GRanges (bug encontrado e corrigido em 2026-07-13, ver
+  ## CLAUDE.md).
+  all_peaks <- unlist(GRangesList(lapply(peaks_list, granges)), use.names = FALSE)
   consensus <- GenomicRanges::reduce(all_peaks)
   log_message("08_diffbind", sprintf("Regiao consenso: %d regioes.", length(consensus)))
   consensus

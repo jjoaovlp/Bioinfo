@@ -53,9 +53,9 @@ in-place; apenas lidos.
 | 09 | `09_annotation.R` | ✅ implementado e testado de ponta a ponta | `ChIPseeker::annotatePeak()` (TxDb hg38 + org.Hs.eg.db) |
 | 10 | `10_enrichment.R` | ✅ implementado e testado de ponta a ponta | GO/KEGG (`clusterProfiler`), Reactome (`ReactomePA`), Hallmark (`msigdbr`+`enricher`) |
 | 11 | `11_granges.R` | ✅ implementado e testado de ponta a ponta | Conversão/padronização para GRanges + validação de consistência |
-| 12 | `12_genome_standardization.R` | ⬜ pendente | liftOver hg19→hg38 (ELK1) |
-| 13 | `13_regulatory_universe.R` | ⬜ pendente | `GenomicRanges::reduce()` |
-| 14 | `14_overlap_matrix.R` | ⬜ pendente | Matriz binária de ocupação |
+| 12 | `12_genome_standardization.R` | ✅ implementado e testado com liftOver real | liftOver hg19→hg38 (ELK1) via chain oficial UCSC |
+| 13 | `13_regulatory_universe.R` | ✅ implementado e testado de ponta a ponta | `GenomicRanges::reduce()` sobre todas as amostras hg38 |
+| 14 | `14_overlap_matrix.R` | ✅ implementado e testado de ponta a ponta | Matriz binária de ocupação (região × proteína_genótipo) |
 | 15 | `15_pairwise_overlap.R` | ⬜ pendente | `findOverlaps()`, Jaccard, heatmaps |
 | 16 | `16_multiple_overlap.R` | ⬜ pendente | Interseção múltipla (Reduce/intersect) |
 | 17 | `17_hotspots.R` | ⬜ pendente | Occupancy score, ranking |
@@ -205,6 +205,23 @@ in-place; apenas lidos.
   próximo fica na coluna `geneId` mesmo com `annoDb="org.Hs.eg.db"` (que só adiciona
   `SYMBOL`/`ENSEMBL`/`GENENAME`); `10_enrichment.R` esperava `ENTREZID` e falhava.
   Também trocado `msigdbr(category=)` (depreciado) por `msigdbr(collection=)`.
+- **2026-07-13** — Implementados `12_genome_standardization.R` (liftOver hg19→hg38 via
+  chain oficial da UCSC), `13_regulatory_universe.R` (`GenomicRanges::reduce()` sobre
+  todas as amostras) e `14_overlap_matrix.R` (matriz binária região×proteína_genótipo).
+  Testados de ponta a ponta com GRanges sintéticos hg38 e, no caso do Módulo 12, com
+  **liftOver real** de uma coordenada hg19 conhecida (promotor do GAPDH,
+  chr12:6.643.093-6.647.537 em hg19) — o resultado (chr12:6.533.927-6.538.371 em hg38)
+  bate com a coordenada hg38 real do GAPDH, confirmando a chain e a conversão.
+  Dois bugs reais encontrados e corrigidos:
+  1. **`do.call(c, lapply(granges_list, granges))` não dispara o dispatch S4** de
+     `c()` para `GRanges` de forma confiável e pode devolver uma `list` comum em vez
+     de um `GRanges`, quebrando `reduce()` a seguir (`"unable to find an inherited
+     method for function 'reduce' for signature 'x = list'"`). Corrigido em **três
+     lugares** (`08_diffbind.R`, `13_regulatory_universe.R`, `14_overlap_matrix.R`)
+     trocando para o idioma correto do Bioconductor: `unlist(GRangesList(lista), use.names=FALSE)`.
+  2. **`S4Vectors::lengths` não existe** (não é exportado) — `lengths()` é o genérico
+     base do R que `GenomicRanges`/`IRanges` estendem via método S4; corrigido em
+     `12_genome_standardization.R` chamando `lengths()` sem qualificar o pacote.
 
 ## 5. Dependências
 
