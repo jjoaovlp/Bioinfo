@@ -50,3 +50,8 @@ ProjetosCode/Arquivos/**/*.fastq.gz
 
 # Genoma/índices reconstruíveis a partir do BSgenome instalado
 ProjetosCode/Arquivos/genome_index/
+
+# Logs/sessionInfo são regenerados a cada execução -- não versionados
+# (a pasta em si permanece versionada via .gitkeep)
+ProjetosCode/Logs/*
+!ProjetosCode/Logs/.gitkeep

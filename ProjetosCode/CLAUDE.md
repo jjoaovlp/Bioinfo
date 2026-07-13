@@ -41,9 +41,9 @@ in-place; apenas lidos.
 
 | # | Script | Status | Descrição |
 |---|--------|--------|-----------|
-| 00 | `00_setup.R` | ✅ implementado | Instalação de dependências (BiocManager), verificação de versões, `sessionInfo()`, funções auxiliares (log, validação, diretórios) |
-| 01 | `01_download.R` | ✅ implementado | Download de metadata/SOFT/FASTQ/processados do GEO para os 4 datasets |
-| 02 | `02_metadata.R` | ✅ implementado | Metadata padronizado; filtro para manter apenas WT/Controle e KO/KD/Deficiente (remove amostras tratadas com agente que não seja o próprio desenho WT-vs-KO) |
+| 00 | `00_setup.R` | ✅ implementado e testado | Instalação de dependências (BiocManager), verificação de versões, `sessionInfo()`, funções auxiliares (log, validação, diretórios) |
+| 01 | `01_download.R` | ✅ implementado e testado | Download de metadata/SOFT/FASTQ/processados do GEO para os 4 datasets |
+| 02 | `02_metadata.R` | ✅ implementado e testado | Metadata padronizado; filtro para manter apenas WT/Controle e KO/KD/Deficiente (remove amostras tratadas com agente que não seja o próprio desenho WT-vs-KO). Rodado de ponta a ponta em 2026-07-13: 89 amostras mantidas, 84 descartadas — ver histórico. |
 | 03 | `03_qc.R` | ⬜ pendente | FastQC + MultiQC |
 | 04 | `04_alignment.R` | ⬜ pendente | Bowtie2 + samtools |
 | 05 | `05_filtering.R` | ⬜ pendente | MarkDuplicates, MAPQ, blacklist ENCODE |
@@ -86,6 +86,40 @@ in-place; apenas lidos.
   Decisões tomadas e confirmadas pelo usuário; ver §9 para o relatório completo.
 - **2026-07-13** — README.md e CLAUDE.md criados.
 - **2026-07-13** — `00_setup.R`, `01_download.R`, `02_metadata.R` implementados.
+- **2026-07-13** — Descoberta uma instalação real de R (4.5.2 e 4.6.0, em
+  `C:\Program Files\R\`) e da extensão R do VS Code (`reditorsupport.r`) na
+  máquina do usuário — ao contrário do que constava em §5.2, o ambiente
+  **tem** R e ~515 pacotes já instalados (incluindo `here`, `GEOquery`,
+  `Biobase`, `dplyr`, `stringr`, `GenomicRanges`, `ChIPseeker`, `DiffBind`).
+  Os módulos 00-02 foram executados de verdade (não só revisados) contra os
+  4 datasets reais do GEO, e 4 bugs genuínos foram encontrados e corrigidos:
+  1. **`here::here()` resolvia para a raiz do repositório Git** (`Bioinfo/`),
+     não para `ProjetosCode/`, porque `.git` fica em `Bioinfo/` e
+     `ProjetosCode/` não tinha marcador de projeto próprio — isso criava uma
+     árvore `Dados/Figuras/Arquivos/Logs` duplicada e errada na raiz do repo.
+     Corrigido criando `ProjetosCode/.here` (arquivo vazio, convenção do
+     pacote `here`) para ancorar o root corretamente.
+  2. **`GEOquery::getGEO()` na versão instalada retorna `SummarizedExperiment`
+     por padrão**, não mais `ExpressionSet`, quebrando `Biobase::pData()`.
+     Corrigido passando `returnType = "ExpressionSet"` explicitamente em
+     `download_series_metadata()` (01_download.R).
+  3. **`match_xpc_input()` colidia a coluna `Replicate`** no `left_join()`
+     (virava `Replicate.x`/`Replicate.y`, quebrando o schema do metadata).
+     Corrigido removendo `Replicate` do `select()` do lado do input (não é
+     necessário para o match por Genotype+Treatment).
+  4. **`extract_pdata()` só lia a primeira plataforma (GPL)** quando uma
+     série GEO usa múltiplas plataformas — é o caso de GSE247724, que tem 5
+     GPLs diferentes e cujas amostras "Huh7.5 STAT1 K.O." ficavam justamente
+     fora da primeira. Corrigido combinando `pData()` de todas as
+     plataformas via `bind_rows()`.
+  Após as correções, os 4 parsers (`parse_gse214182`, `parse_gse222667`,
+  `parse_gse247724`, `parse_gse91923`) foram validados linha a linha contra
+  os dados reais baixados (61, 82, 89 e 2 amostras respectivamente) e
+  batem exatamente com os títulos verificados manualmente na página do GEO.
+  **Achado adicional:** as amostras **XPC-KO não têm nenhum input
+  disponível**, nem mesmo o substituto de H3K4me3 (H3K4me3 só foi feito em
+  WT e ASH1L-KO) — ver §10 (pendência: peak calling do XPC-KO no Módulo 07
+  terá que rodar sem controle pareado).
 
 ## 5. Dependências
 
@@ -122,17 +156,20 @@ Lista completa fixada e versões efetivas serão gravadas em `Logs/` por `00_set
 | deepTools | fingerprint, PCA, coverage, correlação | Módulo 06 |
 | MACS3 | peak calling | Módulo 07 |
 
-**Nenhum destes está instalado no ambiente de desenvolvimento atual** (verificado em
-2026-07-13: `R`, `Rscript`, `bowtie2`, `macs3`, `samtools`, `fastqc` ausentes do PATH).
-O desenvolvimento dos módulos 03+ é feito como código revisado mas **não executado**
-neste ambiente — execução real deve ocorrer em máquina/cluster com essas ferramentas
-instaladas. `00_setup.R` verifica a presença de cada uma via `Sys.which()` e avisa (sem
-interromper) quando ausente, já que só são necessárias a partir do módulo correspondente.
+**R está instalado** (versões 4.5.2 e 4.6.0 em `C:\Program Files\R\`, ~515 pacotes já
+presentes incluindo todo `REQUIRED_PACKAGES` de §5.1) e os módulos 00-02 já foram
+executados de verdade contra os 4 datasets reais (ver histórico acima). As ferramentas
+de linha de comando (SRA Toolkit, FastQC, MultiQC, Bowtie2, samtools, MACS3, deepTools)
+**continuam ausentes do PATH** (verificado em 2026-07-13) — necessárias a partir do
+Módulo 03. `00_setup.R` verifica a presença de cada uma via `Sys.which()` e avisa (sem
+interromper) quando ausente. Os módulos 03+ seguem sendo desenvolvidos como código
+revisado (sintaxe validada via `Rscript`) mas não podem ser executados de ponta a ponta
+até essas ferramentas serem instaladas.
 
 ### 5.3 Versões
 
-A ser preenchido automaticamente por `00_setup.R` (`sessionInfo()` salvo em
-`Logs/sessioninfo_<timestamp>.txt`) na primeira execução em ambiente com R instalado.
+`sessionInfo()` já foi salvo em `Logs/sessioninfo_<timestamp>.txt` na execução real de
+2026-07-13 (R 4.6.0). Novas execuções regravam um snapshot atualizado a cada rodada.
 
 ## 6. Fluxograma resumido do pipeline
 
@@ -209,6 +246,12 @@ inválida):
 
 ## 10. Pendências futuras (TODO)
 
+- [ ] **XPC-KO não tem nenhum input/controle disponível** (nem mesmo o substituto de
+      H3K4me3, que só existe para WT/ASH1L-KO) — confirmado na execução real do
+      Módulo 02 em 2026-07-13. O Módulo 07 terá que rodar MACS3 sem controle pareado
+      para as 6 amostras XPC-KO (opção "peak calling sem controle", ex. `--nolambda`),
+      com FRiP/FDR esperados menos confiáveis — documentar isso explicitamente no
+      relatório do Módulo 07 e tratar como limitação conhecida na validação (Módulo 21).
 - [ ] Confirmar montagem de genoma real (hg38 vs hg19) para XPC e STAT1/STAT2 a partir
       dos metadados SOFT completos no Módulo 01 (não estava explícita nas páginas GEO
       consultadas) — validar antes do Módulo 12.

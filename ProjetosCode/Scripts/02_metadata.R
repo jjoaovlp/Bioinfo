@@ -69,8 +69,12 @@ validate_metadata_schema <- function(df) {
   df[, METADATA_COLUMNS, drop = FALSE]
 }
 
-#' Extrai pData() de um ExpressionSet do GEOquery (lista ou objeto unico) e
-#' valida que nao esta vazio antes de prosseguir com o parsing.
+#' Extrai pData() de um ExpressionSet (ou lista de ExpressionSets, um por
+#' plataforma/GPL -- GEOquery::getGEO() sempre devolve uma lista quando a
+#' serie usa mais de uma plataforma, ex. GSE247724 com 5 GPLs diferentes) e
+#' valida que nao esta vazio antes de prosseguir com o parsing. Combina
+#' pData() de todas as plataformas via bind_rows() para nao perder amostras
+#' que estejam em uma plataforma diferente da primeira da lista.
 extract_pdata <- function(gset, gse_id) {
   if (is.null(gset)) {
     stop(sprintf(
@@ -78,8 +82,17 @@ extract_pdata <- function(gset, gse_id) {
       gse_id
     ), call. = FALSE)
   }
-  obj <- if (is.list(gset) && !is.data.frame(gset)) gset[[1]] else gset
-  pdata <- Biobase::pData(obj)
+  if (is.list(gset) && !is.data.frame(gset)) {
+    if (length(gset) > 1) {
+      log_message("02_metadata", sprintf(
+        "%s tem %d plataformas (GPL) distintas -- combinando pData() de todas.",
+        gse_id, length(gset)
+      ))
+    }
+    pdata <- bind_rows(lapply(gset, function(x) as.data.frame(Biobase::pData(x))))
+  } else {
+    pdata <- Biobase::pData(gset)
+  }
   if (nrow(pdata) == 0) {
     stop(sprintf(
       "Validacao falhou: pData() de %s esta vazia. Execucao interrompida.", gse_id
@@ -142,7 +155,7 @@ parse_gse214182 <- function(pdata) {
 match_xpc_input <- function(df) {
   h3k4_input <- df |>
     filter(Protein == "H3K4me3", !is.na(Input)) |>
-    select(Genotype, Treatment, Replicate, input_gsm = GSM)
+    select(Genotype, Treatment, input_gsm = GSM)
 
   df |>
     left_join(

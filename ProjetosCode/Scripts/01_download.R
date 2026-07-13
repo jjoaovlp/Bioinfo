@@ -69,7 +69,7 @@ download_series_metadata <- function(gse_id) {
   log_message("01_download", sprintf("Baixando metadata de serie: %s", gse_id))
   gset <- tryCatch(
     GEOquery::getGEO(gse_id, GSEMatrix = TRUE, getGPL = FALSE,
-                      destdir = PROJECT_DIRS$geo),
+                      destdir = PROJECT_DIRS$geo, returnType = "ExpressionSet"),
     error = function(e) {
       log_message("01_download",
         sprintf("Falha ao baixar metadata de %s: %s", gse_id, conditionMessage(e)),
