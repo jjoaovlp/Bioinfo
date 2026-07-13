@@ -50,9 +50,9 @@ in-place; apenas lidos.
 | 06 | `06_chip_qc.R` | ✅ implementado (ChIPQCsample testado; batch não testado) | `ChIPQC`: fingerprint (SSD), fragment size, coverage; correlação/PCA em lote com 2+ amostras |
 | 07 | `07_peakcalling.R` | ✅ implementado e testado (mecanismo WSL/MACS3 validado) | MACS3 via WSL (broad para XPC; narrow para ELK1/STAT1/STAT2); `--nolambda` automático quando `Input` do metadata está ausente (CLAUDE.md S9.1) |
 | 08 | `08_diffbind.R` | ✅ implementado (mecânica testada; teste estatístico requer réplicas reais) | XPC: consenso (`GenomicRanges::reduce`) + contagem via `csaw`/`edgeR` (sem presença/ausência, CLAUDE.md S9.1). STAT2: `DiffBind` padrão (input pareado). ELK1/STAT1 fora (sem braço deficiente) |
-| 09 | `09_annotation.R` | ⬜ pendente | ChIPseeker::annotatePeak() |
-| 10 | `10_enrichment.R` | ⬜ pendente | clusterProfiler, ReactomePA, msigdbr |
-| 11 | `11_granges.R` | ⬜ pendente | Conversão/padronização para GRanges |
+| 09 | `09_annotation.R` | ✅ implementado e testado de ponta a ponta | `ChIPseeker::annotatePeak()` (TxDb hg38 + org.Hs.eg.db) |
+| 10 | `10_enrichment.R` | ✅ implementado e testado de ponta a ponta | GO/KEGG (`clusterProfiler`), Reactome (`ReactomePA`), Hallmark (`msigdbr`+`enricher`) |
+| 11 | `11_granges.R` | ✅ implementado e testado de ponta a ponta | Conversão/padronização para GRanges + validação de consistência |
 | 12 | `12_genome_standardization.R` | ⬜ pendente | liftOver hg19→hg38 (ELK1) |
 | 13 | `13_regulatory_universe.R` | ⬜ pendente | `GenomicRanges::reduce()` |
 | 14 | `14_overlap_matrix.R` | ⬜ pendente | Matriz binária de ocupação |
@@ -192,6 +192,19 @@ in-place; apenas lidos.
   (comuns em nomes de usuário) quebravam em múltiplos tokens no `bash -lc` do WSL
   porque `win_to_wsl_path()` não era envolvida em `shQuote()` antes de compor os
   argumentos do MACS3 em `call_peaks_macs3()`.
+- **2026-07-13** — Implementado `08_diffbind.R` (differential binding — ver §3/§9.1) e,
+  em seguida, `09_annotation.R` (ChIPseeker), `10_enrichment.R` (GO/KEGG/Reactome/
+  Hallmark) e `11_granges.R` (padronização/validação de GRanges). `import_peaks()` foi
+  promovida de `08_diffbind.R` para `00_setup.R` (função utilitária reaproveitada por
+  08/09/11 e futuros módulos que leem picos). Testados de ponta a ponta com um
+  narrowPeak sintético usando coordenadas **reais** de hg38 (promotor de GAPDH, entre
+  outras) — Módulo 09 anotou corretamente o GAPDH (Entrez 2597), Módulo 10 rodou os 4
+  enriquecimentos sem erro (sem termos significativos, esperado para 4 genes
+  aleatórios), Módulo 11 converteu e validou o GRanges. Um bug real foi corrigido:
+  `annotatePeak()` não cria uma coluna chamada `ENTREZID` — o Entrez ID do gene mais
+  próximo fica na coluna `geneId` mesmo com `annoDb="org.Hs.eg.db"` (que só adiciona
+  `SYMBOL`/`ENSEMBL`/`GENENAME`); `10_enrichment.R` esperava `ENTREZID` e falhava.
+  Também trocado `msigdbr(category=)` (depreciado) por `msigdbr(collection=)`.
 
 ## 5. Dependências
 

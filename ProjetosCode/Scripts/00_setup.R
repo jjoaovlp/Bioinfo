@@ -242,6 +242,18 @@ run_macs3 <- function(args) {
   invisible(status)
 }
 
+## --- picos como GRanges (usado por varios modulos a partir do 07) --------------------
+
+#' Importa um arquivo de picos (narrowPeak ou broadPeak) como GRanges,
+#' detectando o formato pela extensao do nome do arquivo. Reaproveitada por
+#' todos os modulos que leem picos (08, 09, 11, 13...).
+import_peaks <- function(peak_file) {
+  install_if_missing("rtracklayer")
+  validate_file_exists(peak_file, "arquivo de picos")
+  fmt <- if (grepl("broadPeak$", peak_file)) "broadPeak" else "narrowPeak"
+  rtracklayer::import(peak_file, format = fmt)
+}
+
 ## --- sessionInfo -------------------------------------------------------------------
 
 #' Salva sessionInfo() em Logs/ com timestamp, para reprodutibilidade.

@@ -31,10 +31,9 @@
 ##   00_setup.R
 ##   DiffBind, csaw, edgeR, GenomicRanges, rtracklayer (Bioconductor)
 ##
-## Funcoes definidas neste modulo:
-##   import_peaks(), build_consensus_regions(), count_reads_csaw(),
-##   classify_regions(), run_diffbind_consensus_count(),
-##   run_diffbind_standard(), run_module_08()
+## Funcoes definidas neste modulo (import_peaks() vem de 00_setup.R):
+##   build_consensus_regions(), count_reads_csaw(), classify_regions(),
+##   run_diffbind_consensus_count(), run_diffbind_standard(), run_module_08()
 ## ============================================================================
 
 source(here::here("Scripts", "00_setup.R"))
@@ -56,15 +55,7 @@ DIFFBIND_DIR <- file.path(PROJECT_DIRS$arquivos, "differential")
 ## ChIP-seq differential binding).
 FDR_THRESHOLD <- 0.05
 
-## --- picos e regiao consenso ------------------------------------------------------
-
-#' Importa um arquivo de picos (narrowPeak ou broadPeak) como GRanges,
-#' detectando o formato pela extensao do nome do arquivo.
-import_peaks <- function(peak_file) {
-  validate_file_exists(peak_file, "arquivo de picos")
-  fmt <- if (grepl("broadPeak$", peak_file)) "broadPeak" else "narrowPeak"
-  rtracklayer::import(peak_file, format = fmt)
-}
+## --- regiao consenso (import_peaks() vem de 00_setup.R) ---------------------------
 
 #' Constroi a regiao consenso (uniao reduzida) de dois ou mais conjuntos de
 #' picos -- usada quando um dos grupos nao tem input proprio e a comparacao
