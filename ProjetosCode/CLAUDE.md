@@ -42,7 +42,7 @@ in-place; apenas lidos.
 | # | Script | Status | Descrição |
 |---|--------|--------|-----------|
 | 00 | `00_setup.R` | ✅ implementado e testado | Instalação de dependências (BiocManager), verificação de versões, `sessionInfo()`, funções auxiliares (log, validação, diretórios) |
-| 01 | `01_download.R` | ✅ implementado e testado | Download de metadata/SOFT/FASTQ/processados do GEO para os 4 datasets |
+| 01 | `01_download.R` | ✅ implementado e testado (SRR real resolvido para as 89 amostras) | Download de metadata/SOFT/processados do GEO; resolução SRX→SRR e download de FASTQ via API pública da ENA (sem SRA Toolkit) |
 | 02 | `02_metadata.R` | ✅ implementado e testado | Metadata padronizado; filtro para manter apenas WT/Controle e KO/KD/Deficiente (remove amostras tratadas com agente que não seja o próprio desenho WT-vs-KO). Rodado de ponta a ponta em 2026-07-13: 89 amostras mantidas, 84 descartadas — ver histórico. |
 | 03 | `03_qc.R` | ✅ implementado e testado de ponta a ponta | `ShortRead::qa()`/`report()` + interpretação automática (% N, duplicação, adaptador) |
 | 04 | `04_alignment.R` | ✅ implementado e testado de ponta a ponta | `Rbowtie2` (build+align+bam) + `Rsamtools` (sort/index), parsing do log de alinhamento |
@@ -260,6 +260,22 @@ in-place; apenas lidos.
   (dependia do Módulo 14, que tinha sido pulado) sem derrubar o pipeline, e os Módulos
   20/21 rodaram OK — relatório HTML gerado corretamente, PDF pulado (sem pandoc nesta
   máquina). Nenhum bug encontrado nesta etapa final.
+- **2026-07-13** — **Resolução real de SRR implementada** (`01_download.R`): GEO só
+  expõe o accession SRX no campo `relation` da pData, não o SRR de fato. Adicionadas
+  `extract_srx_from_pdata()` (regex sobre `relation*`), `get_ena_fastq_info()` (consulta
+  a API pública da ENA — European Nucleotide Archive — por `run_accession`,
+  `fastq_ftp`, `fastq_bytes`, `library_layout`) e `resolve_srr_table()` (junta tudo por
+  GSM). `download_fastq_ena()` baixa o FASTQ diretamente do espelho HTTPS da ENA via
+  `download.file()` — **sem precisar de SRA Toolkit/prefetch/fasterq-dump em lugar
+  nenhum** (nem Windows nem WSL). `build_master_metadata()` (Módulo 02) agora popula a
+  coluna `SRR` de verdade (antes sempre `NA`) e adiciona `fastq_ftp`/`fastq_bytes` ao
+  metadata. **Testado de ponta a ponta com as 89 amostras reais**: 89/89 SRR resolvidos
+  com sucesso; tamanho total do FASTQ calculado a partir de `fastq_bytes`: **~95,3 GB**
+  (XPC 64,8GB, STAT2 13,5GB, STAT1 8,8GB, Input 6,6GB, ELK1 1,5GB). Decisão do usuário:
+  baixar as 89 amostras completas (95GB) em vez de um piloto menor.
+  (Nota: durante a investigação desta solução, um ambiente `sra-tools` chegou a ser
+  instalado no ambiente conda `chipseq` do WSL como alternativa — acabou não sendo
+  necessário, mas fica disponível caso o download via ENA falhe para alguma amostra.)
 
 ## 5. Dependências
 
@@ -296,13 +312,13 @@ PATH, sem mudar a metodologia). Ver histórico de decisões abaixo.
 
 | Software | Uso | Observação |
 |---|---|---|
-| SRA Toolkit (`prefetch`, `fasterq-dump`) | download de FASTQ do SRA | Módulo 01 — sem equivalente R nativo, continua externo (já presente no PATH desta máquina em `Bioinfo/SRAtoolkit/bin`) |
 | MACS3 (3.0.4) | peak calling | Módulo 07 — instalado dentro de um ambiente conda (`chipseq`) **no WSL** (Ubuntu-24.04), não no PATH nativo do Windows — ver detalhes abaixo |
 
 **Substituídos por pacotes R nativos (não precisam mais estar no PATH):**
 
 | Ferramenta externa (spec original) | Substituto R nativo | Módulo |
 |---|---|---|
+| SRA Toolkit (`prefetch`/`fasterq-dump`) | API pública da ENA (`resolve_srr_table()`/`download_fastq_ena()`, `download.file()`) — download direto do FASTQ já pronto, sem precisar converter `.sra` | 01 — testado com as 89 amostras reais |
 | FastQC + MultiQC | `ShortRead::qa()`/`report()` | 03 — testado de ponta a ponta |
 | Bowtie2 | `Rbowtie2` (mesmo algoritmo, empacotado) | 04 — testado de ponta a ponta |
 | samtools (view/sort/index/flagstat/fixmate/markdup) | `Rsamtools` + `GenomicAlignments` | 04-05 — testado de ponta a ponta |

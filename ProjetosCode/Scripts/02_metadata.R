@@ -52,7 +52,7 @@ library(stringr)
 METADATA_COLUMNS <- c(
   "Dataset", "Protein", "GSM", "SRR", "Genotype", "Treatment", "Replicate",
   "Input", "Genome", "SequencingStrategy", "ReadLength", "LibraryLayout",
-  "CellLine", "Source_GSE"
+  "CellLine", "Source_GSE", "fastq_ftp", "fastq_bytes"
 )
 
 #' Confere que um data.frame tem exatamente as colunas de METADATA_COLUMNS
@@ -315,13 +315,28 @@ validate_metadata_row <- function(df) {
 #' projeto (mantem so proteinas-alvo dentro do escopo; ver cabecalho) e
 #' salvando tanto a tabela mantida quanto a auditoria do que foi descartado.
 build_master_metadata <- function(geo_results) {
-  xpc <- parse_gse214182(extract_pdata(geo_results[["GSE214182"]]$metadata, "GSE214182")) |>
-    match_xpc_input()
-  stat_wt <- parse_gse222667(extract_pdata(geo_results[["GSE222667"]]$metadata, "GSE222667"))
-  stat_ko <- parse_gse247724(extract_pdata(geo_results[["GSE247724"]]$metadata, "GSE247724"))
-  elk1 <- parse_gse91923(extract_pdata(geo_results[["GSE91923"]]$metadata, "GSE91923"))
+  pdata_xpc <- extract_pdata(geo_results[["GSE214182"]]$metadata, "GSE214182")
+  pdata_stat_wt <- extract_pdata(geo_results[["GSE222667"]]$metadata, "GSE222667")
+  pdata_stat_ko <- extract_pdata(geo_results[["GSE247724"]]$metadata, "GSE247724")
+  pdata_elk1 <- extract_pdata(geo_results[["GSE91923"]]$metadata, "GSE91923")
+
+  xpc <- parse_gse214182(pdata_xpc) |> match_xpc_input()
+  stat_wt <- parse_gse222667(pdata_stat_wt)
+  stat_ko <- parse_gse247724(pdata_stat_ko)
+  elk1 <- parse_gse91923(pdata_elk1)
 
   all_rows <- bind_rows(xpc, stat_wt, stat_ko, elk1)
+
+  ## Resolve SRX->SRR/URL de FASTQ (ver 01_download.R) para cada GSM mantido
+  ## no escopo do projeto e junta ao metadata -- GEO so expoe o SRX, o SRR
+  ## de fato precisa ser resolvido via a API da ENA.
+  srr_table <- bind_rows(
+    resolve_srr_table(pdata_xpc), resolve_srr_table(pdata_stat_wt),
+    resolve_srr_table(pdata_stat_ko), resolve_srr_table(pdata_elk1)
+  )
+  all_rows <- all_rows |>
+    select(-SRR) |>
+    left_join(srr_table[, c("GSM", "SRR", "fastq_ftp", "fastq_bytes")], by = "GSM")
 
   ## Escopo de proteinas do projeto (CLAUDE.md S1): XPC, ELK1, STAT1, STAT2 +
   ## as respectivas linhas de Input necessarias para peak calling. H3K4me3
