@@ -56,9 +56,9 @@ in-place; apenas lidos.
 | 12 | `12_genome_standardization.R` | ✅ implementado e testado com liftOver real | liftOver hg19→hg38 (ELK1) via chain oficial UCSC |
 | 13 | `13_regulatory_universe.R` | ✅ implementado e testado de ponta a ponta | `GenomicRanges::reduce()` sobre todas as amostras hg38 |
 | 14 | `14_overlap_matrix.R` | ✅ implementado e testado de ponta a ponta | Matriz binária de ocupação (região × proteína_genótipo) |
-| 15 | `15_pairwise_overlap.R` | ⬜ pendente | `findOverlaps()`, Jaccard, heatmaps |
-| 16 | `16_multiple_overlap.R` | ⬜ pendente | Interseção múltipla (Reduce/intersect) |
-| 17 | `17_hotspots.R` | ⬜ pendente | Occupancy score, ranking |
+| 15 | `15_pairwise_overlap.R` | ✅ implementado e testado de ponta a ponta | `findOverlaps()`, índice de Jaccard, heatmap |
+| 16 | `16_multiple_overlap.R` | ✅ implementado e testado de ponta a ponta | Interseção múltipla (`Reduce(intersect, ...)`) entre as 4 proteínas |
+| 17 | `17_hotspots.R` | ✅ implementado e testado de ponta a ponta | Occupancy score, anotação genômica (ChIPseeker) e ranking |
 | 18 | `18_bipartite_network.R` | ⬜ pendente | igraph/tidygraph/ggraph, export Cytoscape |
 | 19 | `19_pathway_network.R` | ⬜ pendente | STRINGdb, GO/Reactome network |
 | 20 | `20_visualization.R` | ⬜ pendente | Padronização de figuras |
@@ -222,6 +222,19 @@ in-place; apenas lidos.
   2. **`S4Vectors::lengths` não existe** (não é exportado) — `lengths()` é o genérico
      base do R que `GenomicRanges`/`IRanges` estendem via método S4; corrigido em
      `12_genome_standardization.R` chamando `lengths()` sem qualificar o pacote.
+- **2026-07-13** — Implementados `15_pairwise_overlap.R` (Jaccard + heatmap),
+  `16_multiple_overlap.R` (interseção múltipla entre as 4 proteínas) e
+  `17_hotspots.R` (occupancy score + anotação + ranking). Testados de ponta a ponta
+  com um cenário sintético de 4 "proteínas" (3 sobrepostas no promotor do GAPDH,
+  1 em outro cromossomo): Módulo 16 corretamente devolveu 0 regiões compartilhadas
+  por todas as 4 (já que a 4ª não se sobrepõe às outras — comportamento esperado,
+  não bug); Módulo 17 corretamente identificou a região do GAPDH como hotspot
+  (occupancy_score=3) e a anotou. Bug real corrigido: o universo regulatório
+  (Módulo 13) só tem o identificador da região em `names(gr)`, não numa coluna BED
+  "name" — como `names()` se perde ao converter o resultado de `annotatePeak()`
+  para `data.frame`, `annotate_hotspots()` foi corrigida para copiar
+  `names(hotspot_gr)` para uma metadata column explícita (`region_id`) antes de
+  anotar.
 
 ## 5. Dependências
 
