@@ -1,0 +1,200 @@
+## ============================================================================
+## Modulo 00 -- Setup do Ambiente
+## ============================================================================
+## Descricao:
+##   Prepara o ambiente de analise: instala/verifica pacotes R (via
+##   BiocManager), verifica disponibilidade de softwares externos no PATH,
+##   define funcoes auxiliares reutilizadas por todos os demais modulos
+##   (logging, validacao defensiva de arquivos/diretorios, caminhos
+##   relativos via `here`) e grava sessionInfo() para reprodutibilidade.
+##
+## Entradas:
+##   Nenhuma. Parte do zero de uma instalacao limpa.
+##
+## Saidas:
+##   Logs/00_setup.log
+##   Logs/sessioninfo_<timestamp>.txt
+##
+## Dependencias:
+##   here, BiocManager (instalados automaticamente se ausentes)
+##
+## Funcoes definidas neste modulo (fonte unica -- os demais modulos fazem
+## source(here::here("Scripts", "00_setup.R")) para reaproveita-las):
+##   ensure_dir(), project_path(), log_message(), validate_file_exists(),
+##   validate_dir_exists(), install_if_missing(), install_project_packages(),
+##   check_external_tool(), check_external_tools(), save_session_info()
+## ============================================================================
+
+set.seed(1234)
+
+if (!requireNamespace("here", quietly = TRUE)) {
+  install.packages("here", repos = "https://cloud.r-project.org")
+}
+if (!requireNamespace("BiocManager", quietly = TRUE)) {
+  install.packages("BiocManager", repos = "https://cloud.r-project.org")
+}
+
+library(here)
+
+## --- diretorios do projeto --------------------------------------------------
+
+PROJECT_DIRS <- list(
+  dados    = here("Dados"),
+  geo      = here("Dados", "GEO"),
+  fastq    = here("Dados", "FASTQ"),
+  bam      = here("Dados", "BAM"),
+  peaks    = here("Dados", "Peaks"),
+  bigwig   = here("Dados", "BigWig"),
+  metadata = here("Dados", "Metadata"),
+  figuras  = here("Figuras"),
+  arquivos = here("Arquivos"),
+  scripts  = here("Scripts"),
+  config   = here("Scripts", "config"),
+  logs     = here("Logs")
+)
+
+#' Cria um diretorio recursivamente caso ainda nao exista. Idempotente.
+ensure_dir <- function(path) {
+  if (!dir.exists(path)) {
+    dir.create(path, recursive = TRUE, showWarnings = FALSE)
+  }
+  invisible(path)
+}
+
+invisible(lapply(PROJECT_DIRS, ensure_dir))
+
+#' Atalho para here() restrito as pastas do projeto (nunca caminhos absolutos).
+project_path <- function(...) here(...)
+
+## --- logging ------------------------------------------------------------------
+
+#' Grava uma mensagem de log com timestamp, modulo e nivel, no console e em
+#' Logs/<modulo>.log. Nao interrompe a execucao -- use stop() explicitamente
+#' (via validate_*()) quando uma falha for critica o suficiente para isso.
+log_message <- function(module, msg, level = c("INFO", "WARN", "ERROR")) {
+  level <- match.arg(level)
+  timestamp <- format(Sys.time(), "%Y-%m-%d %H:%M:%S")
+  line <- sprintf("[%s] [%s] [%s] %s", timestamp, level, module, msg)
+  message(line)
+  log_file <- file.path(PROJECT_DIRS$logs, paste0(module, ".log"))
+  cat(line, "\n", file = log_file, append = TRUE)
+  invisible(line)
+}
+
+## --- validacao defensiva --------------------------------------------------------
+
+#' Interrompe a execucao com mensagem clara caso o arquivo nao exista.
+#' Usada nos pontos em que a ausencia do arquivo compromete a validade
+#' cientifica da etapa seguinte (ex.: BAM final antes do peak calling).
+validate_file_exists <- function(path, description = "arquivo") {
+  if (!file.exists(path)) {
+    stop(sprintf(
+      "Validacao falhou: %s nao encontrado em '%s'. Execucao interrompida.",
+      description, path
+    ), call. = FALSE)
+  }
+  invisible(TRUE)
+}
+
+#' Interrompe a execucao com mensagem clara caso o diretorio nao exista.
+validate_dir_exists <- function(path, description = "diretorio") {
+  if (!dir.exists(path)) {
+    stop(sprintf(
+      "Validacao falhou: %s nao encontrado em '%s'. Execucao interrompida.",
+      description, path
+    ), call. = FALSE)
+  }
+  invisible(TRUE)
+}
+
+## --- pacotes R ------------------------------------------------------------------
+
+#' Instala um pacote via BiocManager caso ainda nao esteja disponivel.
+install_if_missing <- function(pkg) {
+  if (!requireNamespace(pkg, quietly = TRUE)) {
+    log_message("00_setup", sprintf("Instalando pacote ausente: %s", pkg))
+    tryCatch(
+      BiocManager::install(pkg, update = FALSE, ask = FALSE),
+      error = function(e) {
+        log_message(
+          "00_setup",
+          sprintf("Falha ao instalar '%s': %s", pkg, conditionMessage(e)),
+          level = "ERROR"
+        )
+        stop(e)
+      }
+    )
+  }
+  invisible(TRUE)
+}
+
+## Lista fixada de pacotes usados em algum ponto do pipeline (ver CLAUDE.md, S5.1).
+REQUIRED_PACKAGES <- c(
+  "here", "BiocManager", "GEOquery", "Biobase",
+  "GenomicRanges", "GenomicFeatures", "rtracklayer",
+  "ChIPseeker", "org.Hs.eg.db",
+  "DiffBind", "clusterProfiler", "ReactomePA", "msigdbr",
+  "STRINGdb", "igraph", "tidygraph", "ggraph",
+  "data.table", "dplyr", "tidyr", "purrr", "stringr", "readr",
+  "ggplot2", "yaml", "rmarkdown", "knitr"
+)
+
+#' Instala/verifica todas as dependencias do projeto.
+install_project_packages <- function(packages = REQUIRED_PACKAGES) {
+  invisible(lapply(packages, install_if_missing))
+  log_message("00_setup", "Verificacao/instalacao de pacotes R concluida.")
+}
+
+## --- softwares externos (fora do R) ----------------------------------------------
+
+## Ver CLAUDE.md S5.2 para o uso de cada um e o modulo que o requer.
+EXTERNAL_TOOLS <- c(
+  "prefetch", "fasterq-dump", "fastqc", "multiqc",
+  "bowtie2", "samtools", "macs3"
+)
+
+#' Verifica se um software externo esta no PATH. Nao interrompe a execucao
+#' do Modulo 00 (esses binarios so sao necessarios a partir do modulo
+#' correspondente) -- apenas registra um aviso.
+check_external_tool <- function(tool) {
+  path <- Sys.which(tool)
+  if (identical(unname(path), "")) {
+    log_message("00_setup",
+      sprintf("Software externo nao encontrado no PATH: %s", tool),
+      level = "WARN")
+    return(FALSE)
+  }
+  log_message("00_setup", sprintf("Software externo encontrado: %s -> %s", tool, path))
+  TRUE
+}
+
+#' Roda check_external_tool() para todas as ferramentas de EXTERNAL_TOOLS.
+check_external_tools <- function(tools = EXTERNAL_TOOLS) {
+  status <- vapply(tools, check_external_tool, logical(1))
+  names(status) <- tools
+  status
+}
+
+## --- sessionInfo -------------------------------------------------------------------
+
+#' Salva sessionInfo() em Logs/ com timestamp, para reprodutibilidade.
+save_session_info <- function() {
+  timestamp <- format(Sys.time(), "%Y%m%d_%H%M%S")
+  out_file <- file.path(PROJECT_DIRS$logs, sprintf("sessioninfo_%s.txt", timestamp))
+  writeLines(capture.output(sessionInfo()), out_file)
+  log_message("00_setup", sprintf("sessionInfo() salvo em '%s'.", out_file))
+  invisible(out_file)
+}
+
+## --- execucao principal --------------------------------------------------------------
+## Guard: quando este script eh apenas source()ado por outro modulo para
+## reaproveitar as funcoes acima, nao repetimos instalacao/checagem/sessionInfo
+## a cada chamada dentro da mesma sessao de R.
+if (!exists(".setup_00_done", envir = .GlobalEnv)) {
+  log_message("00_setup", "Iniciando Modulo 00 -- Setup do ambiente.")
+  install_project_packages()
+  check_external_tools()
+  save_session_info()
+  assign(".setup_00_done", TRUE, envir = .GlobalEnv)
+  log_message("00_setup", "Modulo 00 concluido.")
+}

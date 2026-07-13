@@ -1,0 +1,52 @@
+# ============================================================
+# .gitignore — Bioinfo (repositório multi-projeto)
+# ============================================================
+
+# --- R ---
+.Rhistory
+.RData
+.Rproj.user/
+.Ruserdata
+*.Rout
+*.Rcheck/
+renv/library/
+renv/staging/
+
+# --- Sistema operacional ---
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# --- Editores ---
+.vscode/
+.idea/
+*.swp
+*~
+
+# --- Logs e temporários ---
+*.log
+*.tmp
+*.temp
+Temp/
+tmp/
+
+# --- Projeto legado (fora de escopo do pipeline ChIP-seq atual) ---
+DiretorioR/
+
+# --- ProjetosCode / ChIP-seq pipeline: dados brutos grandes, nunca versionados ---
+# (a pasta em si permanece versionada via .gitkeep; só o conteúdo é ignorado)
+ProjetosCode/Dados/FASTQ/*
+!ProjetosCode/Dados/FASTQ/.gitkeep
+ProjetosCode/Dados/BAM/*
+!ProjetosCode/Dados/BAM/.gitkeep
+ProjetosCode/Dados/BigWig/*
+!ProjetosCode/Dados/BigWig/.gitkeep
+ProjetosCode/Dados/GEO/*.sra
+ProjetosCode/Dados/GEO/*.fastq.gz
+ProjetosCode/Dados/GEO/*.fastq
+ProjetosCode/Arquivos/**/*.bam
+ProjetosCode/Arquivos/**/*.bam.bai
+ProjetosCode/Arquivos/**/*.fastq.gz
+
+# Genoma/índices reconstruíveis a partir do BSgenome instalado
+ProjetosCode/Arquivos/genome_index/
