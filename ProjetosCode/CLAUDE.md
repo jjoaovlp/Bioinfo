@@ -49,7 +49,7 @@ in-place; apenas lidos.
 | 05 | `05_filtering.R` | ✅ implementado e testado de ponta a ponta | `Rsamtools::filterBam()` (MAPQ nativo + dedup + blacklist ENCODE via `GenomicRanges`) em uma única passada |
 | 06 | `06_chip_qc.R` | ✅ implementado (ChIPQCsample testado; batch não testado) | `ChIPQC`: fingerprint (SSD), fragment size, coverage; correlação/PCA em lote com 2+ amostras |
 | 07 | `07_peakcalling.R` | ✅ implementado e testado (mecanismo WSL/MACS3 validado) | MACS3 via WSL (broad para XPC; narrow para ELK1/STAT1/STAT2); `--nolambda` automático quando `Input` do metadata está ausente (CLAUDE.md S9.1) |
-| 08 | `08_diffbind.R` | ⬜ pendente | DiffBind — apenas XPC (WT vs XPC-KO) e STAT2 (WT vs STAT1-KO); ELK1 e STAT1 ficam fora (sem braço deficiente disponível) |
+| 08 | `08_diffbind.R` | ✅ implementado (mecânica testada; teste estatístico requer réplicas reais) | XPC: consenso (`GenomicRanges::reduce`) + contagem via `csaw`/`edgeR` (sem presença/ausência, CLAUDE.md S9.1). STAT2: `DiffBind` padrão (input pareado). ELK1/STAT1 fora (sem braço deficiente) |
 | 09 | `09_annotation.R` | ⬜ pendente | ChIPseeker::annotatePeak() |
 | 10 | `10_enrichment.R` | ⬜ pendente | clusterProfiler, ReactomePA, msigdbr |
 | 11 | `11_granges.R` | ⬜ pendente | Conversão/padronização para GRanges |
@@ -406,6 +406,14 @@ antocorpo/pipeline (não há proteína XPC para imunoprecipitar nesse genótipo)
       de fragmento, e o FASTQ de teste do `Rbowtie2` tem poucochíssimas reads) — isso
       é uma limitação do dado de teste, não do pipeline; validar com FASTQ real
       quando disponível.
+- [x] ~~Implementar Módulo 08 (Differential Binding)~~ — `08_diffbind.R` implementado
+      com os dois fluxos (consenso+contagem via `csaw`/`edgeR` para XPC; `DiffBind`
+      padrão para STAT2). A mecânica (`build_consensus_regions()`,
+      `count_reads_csaw()`) foi testada de ponta a ponta com dados reais/sintéticos;
+      o teste estatístico final (`edgeR::glmQLFit`) falha com 1 amostra por grupo
+      (sem graus de liberdade para estimar dispersão) — isso é esperado e só
+      funciona com réplicas reais (o metadata real tem XPC WT n=10, XPC-KO n=6),
+      não é um bug do código.
 - [x] ~~Instalar `Rbowtie2`~~ — instalado via BiocManager em 2026-07-13, testado de
       ponta a ponta (build de índice + alinhamento real, 95% de taxa de alinhamento).
 - [x] ~~Instalar Python + MACS3~~ — Python 3.12 instalado (winget); MACS3 3.0.4
