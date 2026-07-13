@@ -150,7 +150,8 @@ install_project_packages <- function(packages = REQUIRED_PACKAGES) {
 ## Ver CLAUDE.md S5.2 para o uso de cada um e o modulo que o requer.
 EXTERNAL_TOOLS <- c(
   "prefetch", "fasterq-dump", "fastqc", "multiqc",
-  "bowtie2", "samtools", "macs3"
+  "bowtie2", "samtools", "bedtools", "macs3", "bamCoverage",
+  "plotFingerprint", "multiBamSummary", "plotCorrelation", "plotPCA"
 )
 
 #' Verifica se um software externo esta no PATH. Nao interrompe a execucao

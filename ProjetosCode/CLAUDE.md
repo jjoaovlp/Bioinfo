@@ -44,9 +44,9 @@ in-place; apenas lidos.
 | 00 | `00_setup.R` | ✅ implementado e testado | Instalação de dependências (BiocManager), verificação de versões, `sessionInfo()`, funções auxiliares (log, validação, diretórios) |
 | 01 | `01_download.R` | ✅ implementado e testado | Download de metadata/SOFT/FASTQ/processados do GEO para os 4 datasets |
 | 02 | `02_metadata.R` | ✅ implementado e testado | Metadata padronizado; filtro para manter apenas WT/Controle e KO/KD/Deficiente (remove amostras tratadas com agente que não seja o próprio desenho WT-vs-KO). Rodado de ponta a ponta em 2026-07-13: 89 amostras mantidas, 84 descartadas — ver histórico. |
-| 03 | `03_qc.R` | ⬜ pendente | FastQC + MultiQC |
-| 04 | `04_alignment.R` | ⬜ pendente | Bowtie2 + samtools |
-| 05 | `05_filtering.R` | ⬜ pendente | MarkDuplicates, MAPQ, blacklist ENCODE |
+| 03 | `03_qc.R` | ✅ implementado (funções puras testadas) | FastQC + MultiQC + interpretação automática (PASS/WARN/FAIL) |
+| 04 | `04_alignment.R` | ✅ implementado (parsing testado) | Bowtie2 + samtools, sort/index, `flagstat` |
+| 05 | `05_filtering.R` | ✅ implementado (não executável sem ferramentas) | MarkDuplicates (via samtools, sem Picard), MAPQ, blacklist ENCODE (bedtools) |
 | 06 | `06_chip_qc.R` | ⬜ pendente | DeepTools (fingerprint, PCA, coverage, correlation, fragment size) |
 | 07 | `07_peakcalling.R` | ⬜ pendente | MACS3 (broad para XPC; narrow para ELK1/STAT1/STAT2) |
 | 08 | `08_diffbind.R` | ⬜ pendente | DiffBind — apenas XPC (WT vs XPC-KO) e STAT2 (WT vs STAT1-KO); ELK1 e STAT1 ficam fora (sem braço deficiente disponível) |
@@ -120,6 +120,15 @@ in-place; apenas lidos.
   disponível**, nem mesmo o substituto de H3K4me3 (H3K4me3 só foi feito em
   WT e ASH1L-KO) — ver §10 (pendência: peak calling do XPC-KO no Módulo 07
   terá que rodar sem controle pareado).
+- **2026-07-13** — Implementados `03_qc.R` (FastQC/MultiQC + interpretação
+  automática), `04_alignment.R` (Bowtie2/samtools) e `05_filtering.R`
+  (dedup via samtools, MAPQ, blacklist ENCODE via bedtools). Como as
+  ferramentas externas (FastQC, Bowtie2, samtools, bedtools) ainda não estão
+  no PATH, essas funções não podem rodar de ponta a ponta, mas toda a lógica
+  de parsing pura (`parse_flagstat()`, `parse_fastqc_summary()`,
+  `interpret_qc_flags()`) foi testada com dados sintéticos no R real e um
+  bug real foi encontrado e corrigido: `interpret_qc_flags()` tentava gravar
+  `qc_summary.csv` sem garantir que `Arquivos/qc/` existisse.
 
 ## 5. Dependências
 
@@ -152,8 +161,9 @@ Lista completa fixada e versões efetivas serão gravadas em `Logs/` por `00_set
 | MultiQC | agregação de QC | Módulo 03 |
 | Bowtie2 | alinhamento | Módulo 04 |
 | samtools | sort/index/stats | Módulos 04-05 |
-| Picard (ou `samtools markdup`) | remoção de duplicatas | Módulo 05 |
-| deepTools | fingerprint, PCA, coverage, correlação | Módulo 06 |
+| samtools (`fixmate`/`markdup`, sem Picard) | remoção de duplicatas | Módulo 05 |
+| bedtools | remoção de regiões da blacklist ENCODE (`intersect -v`) | Módulo 05 |
+| deepTools (`bamCoverage`, `plotFingerprint`, `multiBamSummary`, `plotCorrelation`, `plotPCA`) | fingerprint, PCA, coverage, correlação | Módulo 06 |
 | MACS3 | peak calling | Módulo 07 |
 
 **R está instalado** (versões 4.5.2 e 4.6.0 em `C:\Program Files\R\`, ~515 pacotes já
