@@ -22,7 +22,8 @@
 ## source(here::here("Scripts", "00_setup.R")) para reaproveita-las):
 ##   ensure_dir(), project_path(), log_message(), validate_file_exists(),
 ##   validate_dir_exists(), install_if_missing(), install_project_packages(),
-##   check_external_tool(), check_external_tools(), save_session_info()
+##   check_external_tool(), check_external_tools(), win_to_wsl_path(),
+##   run_wsl_command(), check_macs3_wsl(), run_macs3(), save_session_info()
 ## ============================================================================
 
 set.seed(1234)
@@ -129,9 +130,13 @@ install_if_missing <- function(pkg) {
 }
 
 ## Lista fixada de pacotes usados em algum ponto do pipeline (ver CLAUDE.md, S5.1).
+## Desde 2026-07-13, ShortRead/Rsamtools/GenomicAlignments/Rbowtie2/ChIPQC/csaw
+## substituem FastQC+MultiQC/samtools/bedtools/Bowtie2/deepTools como pacotes R
+## nativos (ver CLAUDE.md S5.2 e S9) -- MACS3 continua externo (Python).
 REQUIRED_PACKAGES <- c(
   "here", "BiocManager", "GEOquery", "Biobase",
   "GenomicRanges", "GenomicFeatures", "rtracklayer",
+  "ShortRead", "Rsamtools", "GenomicAlignments", "Rbowtie2", "ChIPQC", "csaw",
   "ChIPseeker", "org.Hs.eg.db",
   "DiffBind", "clusterProfiler", "ReactomePA", "msigdbr",
   "STRINGdb", "igraph", "tidygraph", "ggraph",
@@ -147,12 +152,14 @@ install_project_packages <- function(packages = REQUIRED_PACKAGES) {
 
 ## --- softwares externos (fora do R) ----------------------------------------------
 
-## Ver CLAUDE.md S5.2 para o uso de cada um e o modulo que o requer.
-EXTERNAL_TOOLS <- c(
-  "prefetch", "fasterq-dump", "fastqc", "multiqc",
-  "bowtie2", "samtools", "bedtools", "macs3", "bamCoverage",
-  "plotFingerprint", "multiBamSummary", "plotCorrelation", "plotPCA"
-)
+## Ver CLAUDE.md S5.2 para o uso de cada um e o modulo que o requer. FastQC,
+## MultiQC, Bowtie2, samtools e bedtools foram substituidos por pacotes R
+## nativos (ShortRead, Rbowtie2, Rsamtools, GenomicRanges) -- so
+## prefetch/fasterq-dump (download SRA) continuam precisando estar no PATH do
+## Windows. MACS3 nao tem build bioconda para Windows e roda dentro do WSL
+## (ver check_macs3_wsl()/run_macs3() abaixo), por isso nao entra em
+## EXTERNAL_TOOLS (que assume checagem via Sys.which() no PATH do Windows).
+EXTERNAL_TOOLS <- c("prefetch", "fasterq-dump")
 
 #' Verifica se um software externo esta no PATH. Nao interrompe a execucao
 #' do Modulo 00 (esses binarios so sao necessarios a partir do modulo
@@ -176,6 +183,65 @@ check_external_tools <- function(tools = EXTERNAL_TOOLS) {
   status
 }
 
+## --- MACS3 via WSL (sem build bioconda para Windows) ------------------------------
+
+## Distribuicao WSL e caminho do binario MACS3 dentro do ambiente conda
+## "chipseq" criado especificamente para isso (ver CLAUDE.md S5.2/S9).
+WSL_DISTRO <- "Ubuntu-24.04"
+MACS3_WSL_BIN <- "~/miniconda3/envs/chipseq/bin/macs3"
+
+#' Converte um caminho absoluto do Windows (ex. "C:/Users/x/y.bam") para o
+#' caminho equivalente dentro do WSL (ex. "/mnt/c/Users/x/y.bam"), para poder
+#' passar arquivos do projeto (sempre resolvidos via here()) para comandos
+#' rodados dentro do WSL.
+win_to_wsl_path <- function(path) {
+  path <- normalizePath(path, winslash = "/", mustWork = FALSE)
+  if (!grepl("^[A-Za-z]:/", path)) {
+    stop(sprintf(
+      "Validacao falhou: '%s' nao parece um caminho absoluto do Windows (esperado 'C:/...').",
+      path
+    ), call. = FALSE)
+  }
+  drive <- tolower(substr(path, 1, 1))
+  resto <- substring(path, 3)
+  paste0("/mnt/", drive, resto)
+}
+
+#' Roda uma linha de comando dentro da distribuicao WSL configurada, via
+#' `wsl -d <distro> -- bash -lc "<comando>"`. Devolve o codigo de saida.
+run_wsl_command <- function(command_string, distro = WSL_DISTRO) {
+  system2("wsl", args = c("-d", distro, "--", "bash", "-lc", shQuote(command_string)))
+}
+
+#' Verifica se o MACS3 esta disponivel dentro do WSL (nao interrompe a
+#' execucao -- apenas avisa, seguindo o mesmo padrao de check_external_tool()).
+check_macs3_wsl <- function() {
+  status <- suppressWarnings(run_wsl_command(sprintf("%s --version", MACS3_WSL_BIN)))
+  if (!identical(status, 0L)) {
+    log_message("00_setup",
+      "MACS3 (via WSL) nao encontrado ou WSL indisponivel -- Modulo 07 nao podera rodar.",
+      level = "WARN")
+    return(FALSE)
+  }
+  log_message("00_setup", "MACS3 (via WSL) disponivel.")
+  TRUE
+}
+
+#' Roda o MACS3 (dentro do WSL) com os argumentos fornecidos. Os caminhos de
+#' arquivo em `args` devem ja vir convertidos via win_to_wsl_path() -- esta
+#' funcao nao faz a conversao sozinha, pois nem todo argumento e' um caminho
+#' (ex. "-q", "0.01").
+run_macs3 <- function(args) {
+  command_string <- paste(MACS3_WSL_BIN, paste(args, collapse = " "))
+  log_message("00_setup", sprintf("wsl macs3 %s", paste(args, collapse = " ")))
+  status <- run_wsl_command(command_string)
+  if (!identical(status, 0L)) {
+    stop(sprintf("Falha ao rodar MACS3 via WSL (codigo %s). Execucao interrompida.", status),
+         call. = FALSE)
+  }
+  invisible(status)
+}
+
 ## --- sessionInfo -------------------------------------------------------------------
 
 #' Salva sessionInfo() em Logs/ com timestamp, para reprodutibilidade.
@@ -195,6 +261,7 @@ if (!exists(".setup_00_done", envir = .GlobalEnv)) {
   log_message("00_setup", "Iniciando Modulo 00 -- Setup do ambiente.")
   install_project_packages()
   check_external_tools()
+  check_macs3_wsl()
   save_session_info()
   assign(".setup_00_done", TRUE, envir = .GlobalEnv)
   log_message("00_setup", "Modulo 00 concluido.")

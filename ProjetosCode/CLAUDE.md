@@ -44,9 +44,9 @@ in-place; apenas lidos.
 | 00 | `00_setup.R` | ✅ implementado e testado | Instalação de dependências (BiocManager), verificação de versões, `sessionInfo()`, funções auxiliares (log, validação, diretórios) |
 | 01 | `01_download.R` | ✅ implementado e testado | Download de metadata/SOFT/FASTQ/processados do GEO para os 4 datasets |
 | 02 | `02_metadata.R` | ✅ implementado e testado | Metadata padronizado; filtro para manter apenas WT/Controle e KO/KD/Deficiente (remove amostras tratadas com agente que não seja o próprio desenho WT-vs-KO). Rodado de ponta a ponta em 2026-07-13: 89 amostras mantidas, 84 descartadas — ver histórico. |
-| 03 | `03_qc.R` | ✅ implementado (funções puras testadas) | FastQC + MultiQC + interpretação automática (PASS/WARN/FAIL) |
-| 04 | `04_alignment.R` | ✅ implementado (parsing testado) | Bowtie2 + samtools, sort/index, `flagstat` |
-| 05 | `05_filtering.R` | ✅ implementado (não executável sem ferramentas) | MarkDuplicates (via samtools, sem Picard), MAPQ, blacklist ENCODE (bedtools) |
+| 03 | `03_qc.R` | ✅ implementado e testado de ponta a ponta | `ShortRead::qa()`/`report()` + interpretação automática (% N, duplicação, adaptador) |
+| 04 | `04_alignment.R` | ✅ implementado e testado de ponta a ponta | `Rbowtie2` (build+align+bam) + `Rsamtools` (sort/index), parsing do log de alinhamento |
+| 05 | `05_filtering.R` | ✅ implementado e testado de ponta a ponta | `Rsamtools::filterBam()` (MAPQ nativo + dedup + blacklist ENCODE via `GenomicRanges`) em uma única passada |
 | 06 | `06_chip_qc.R` | ⬜ pendente | DeepTools (fingerprint, PCA, coverage, correlation, fragment size) |
 | 07 | `07_peakcalling.R` | ⬜ pendente | MACS3 (broad para XPC; narrow para ELK1/STAT1/STAT2) |
 | 08 | `08_diffbind.R` | ⬜ pendente | DiffBind — apenas XPC (WT vs XPC-KO) e STAT2 (WT vs STAT1-KO); ELK1 e STAT1 ficam fora (sem braço deficiente disponível) |
@@ -129,6 +129,59 @@ in-place; apenas lidos.
   `interpret_qc_flags()`) foi testada com dados sintéticos no R real e um
   bug real foi encontrado e corrigido: `interpret_qc_flags()` tentava gravar
   `qc_summary.csv` sem garantir que `Arquivos/qc/` existisse.
+- **2026-07-13** — Decisão de arquitetura: substituir FastQC/MultiQC, samtools e
+  bedtools por pacotes R nativos já instalados (`ShortRead`, `Rsamtools`+
+  `GenomicAlignments`, `GenomicRanges`) nos Módulos 03-05, eliminando a dependência de
+  PATH para essas três ferramentas sem mudar a metodologia. Bowtie2 (Módulo 04) passa a
+  usar `Rbowtie2` (Bioconductor) — mesmo algoritmo, só empacotado como pacote R, evitando
+  configuração manual de PATH (decisão do usuário; alternativa `Rsubread::align()`
+  rejeitada por mudar o algoritmo de alinhamento). deepTools (Módulo 06) substituído por
+  `ChIPQC`. MACS3 (Módulo 07) não tem equivalente R real — decisão do usuário: instalar
+  Python + MACS3 de verdade e adicionar ao PATH, em vez de trocar por um peak caller R
+  nativo (ex. `mosaics`), para preservar a metodologia pedida originalmente. Decisão
+  detalhada sobre o peak calling do XPC-KO sem input registrada em §9.1.
+- **2026-07-13** — Execução real da migração de ferramentas e reescrita completa dos
+  Módulos 03-05, com testes de ponta a ponta (não só sintaxe) no R real:
+  - Instalado `Rbowtie2` via BiocManager.
+  - Instalado **Python 3.12** (winget) — necessário porque `Rbowtie2::bowtie2_build()`
+    chama `python3` internamente; o instalador oficial do python.org só cria
+    `python.exe`, então foi criada uma cópia `python3.exe` ao lado (bug conhecido do
+    Windows). Sem isso, `bowtie2_build()`/`bowtie2_samtools()` falhavam silenciosamente
+    (o stub "App Execution Alias" da Microsoft Store intercepta `python3`, imprime uma
+    mensagem e sai sem gerar erro no R, então nem o fallback interno do Rbowtie2 para
+    `python` disparava).
+  - Instalado **Miniconda** — primeiro tentado no Windows nativo, mas o `bioconda` **não
+    publica build de MACS3 para `win-64`**. Miniconda foi então instalado **dentro do
+    WSL** (Ubuntu-24.04, já presente na máquina), onde o ambiente `chipseq` com MACS3
+    3.0.4 foi criado com sucesso (sem precisar de `sudo` — Miniconda fica no `$HOME` do
+    usuário do WSL). Funções `win_to_wsl_path()`, `run_wsl_command()`,
+    `check_macs3_wsl()` e `run_macs3()` adicionadas a `00_setup.R` para o Módulo 07
+    poder chamar o MACS3 de dentro do R.
+  - Python, Miniconda e o ambiente `chipseq` foram adicionados ao **PATH do usuário**
+    (persistente, via `[Environment]::SetEnvironmentVariable`), não só à sessão atual.
+  - `03_qc.R`, `04_alignment.R` e `05_filtering.R` foram **reescritos do zero** para
+    usar `ShortRead::qa()`, `Rbowtie2::bowtie2_build()`/`bowtie2_samtools()` e
+    `Rsamtools::filterBam()` (MAPQ nativo + dedup + blacklist ENCODE numa única
+    passada), respectivamente, no lugar dos wrappers de linha de comando anteriores.
+  - Testados de ponta a ponta com dados reais (FASTQ de teste do próprio pacote
+    `Rbowtie2`, genoma lambda): QA real gerado, alinhamento com 95% de taxa,
+    ordenação/indexação, filtro combinado MAPQ+dedup+blacklist (2000→1838 reads),
+    download real da blacklist ENCODE hg38 (636 regiões). Isso revelou e corrigiu mais
+    4 bugs reais:
+    1. `ShortRead::qa()[["adapterContamination"]]` é um `data.frame` (coluna
+       `contamination`), não um vetor — `interpret_qa()` tentava `mean(as.numeric(.))`
+       direto em um `data.frame` e falhava.
+    2. `Rbowtie2::bowtie2_samtools()` tem um parâmetro `bamFile` posicional entre
+       `seq2` e `...` — passar um argumento extra do bowtie2 (`--threads N`) sem nome
+       no final da chamada era absorvido por `bamFile` em vez de cair em `...`.
+       Corrigido nomeando `bamFile = NULL` explicitamente.
+    3. A saída/log do alinhamento (taxa de alinhamento, total de reads) não é
+       capturável via `capture.output()` — `bowtie2_samtools()` escreve direto no
+       console do SO e devolve o log (via `.bowtie2.cerr.txt`) como **valor de
+       retorno invisível**; `parse_alignment_log()` só funcionou depois de capturar
+       o retorno da função diretamente.
+    4. `interpret_qc_flags()`/diretório `Arquivos/qc/` (já corrigido antes) — mantido
+       aqui por completude do padrão "sempre `ensure_dir()` antes de `write.csv()`".
 
 ## 5. Dependências
 
@@ -139,7 +192,12 @@ in-place; apenas lidos.
 | `here` | caminhos relativos |
 | `BiocManager` | instalação de pacotes Bioconductor |
 | `GEOquery`, `Biobase` | download de metadata/SOFT/FASTQ processados do GEO; acesso a `pData()` |
-| `GenomicRanges`, `GenomicFeatures`, `rtracklayer` | GRanges, liftOver |
+| `GenomicRanges`, `GenomicFeatures`, `rtracklayer` | GRanges, liftOver, e (desde 2026-07-13) remoção de regiões da blacklist ENCODE via `findOverlaps()`/`subsetByOverlaps()` — substitui `bedtools` |
+| `ShortRead` | QC nativo em R (`qa()`/`report()`) — substitui FastQC/MultiQC no Módulo 03 |
+| `Rsamtools`, `GenomicAlignments` | manipulação de BAM (sort/index/flagstat-equivalente) — substitui `samtools` nos Módulos 04-05 |
+| `Rbowtie2` | alinhamento (mesmo Bowtie2, empacotado como pacote R) — Módulo 04 |
+| `ChIPQC` | fingerprint/PCA/coverage/correlação — substitui `deepTools` no Módulo 06 |
+| `csaw` | differential binding por contagem de reads em regiões consenso — apoio ao Módulo 08 (ver §9.1) |
 | `ChIPseeker`, `TxDb.Hsapiens.UCSC.hg38.knownGene`, `org.Hs.eg.db` | anotação |
 | `DiffBind` | binding diferencial |
 | `clusterProfiler`, `ReactomePA`, `msigdbr` | enriquecimento funcional |
@@ -154,27 +212,39 @@ Lista completa fixada e versões efetivas serão gravadas em `Logs/` por `00_set
 
 ### 5.2 Softwares externos necessários (fora do R)
 
+Revisado em 2026-07-13: sempre que existir um pacote R nativo equivalente já
+instalado, ele substitui a ferramenta de linha de comando (elimina dependência de
+PATH, sem mudar a metodologia). Ver histórico de decisões abaixo.
+
 | Software | Uso | Observação |
 |---|---|---|
-| SRA Toolkit (`prefetch`, `fasterq-dump`) | download de FASTQ do SRA | Módulo 01 |
-| FastQC | QC por amostra | Módulo 03 |
-| MultiQC | agregação de QC | Módulo 03 |
-| Bowtie2 | alinhamento | Módulo 04 |
-| samtools | sort/index/stats | Módulos 04-05 |
-| samtools (`fixmate`/`markdup`, sem Picard) | remoção de duplicatas | Módulo 05 |
-| bedtools | remoção de regiões da blacklist ENCODE (`intersect -v`) | Módulo 05 |
-| deepTools (`bamCoverage`, `plotFingerprint`, `multiBamSummary`, `plotCorrelation`, `plotPCA`) | fingerprint, PCA, coverage, correlação | Módulo 06 |
-| MACS3 | peak calling | Módulo 07 |
+| SRA Toolkit (`prefetch`, `fasterq-dump`) | download de FASTQ do SRA | Módulo 01 — sem equivalente R nativo, continua externo (já presente no PATH desta máquina em `Bioinfo/SRAtoolkit/bin`) |
+| MACS3 (3.0.4) | peak calling | Módulo 07 — instalado dentro de um ambiente conda (`chipseq`) **no WSL** (Ubuntu-24.04), não no PATH nativo do Windows — ver detalhes abaixo |
+
+**Substituídos por pacotes R nativos (não precisam mais estar no PATH):**
+
+| Ferramenta externa (spec original) | Substituto R nativo | Módulo |
+|---|---|---|
+| FastQC + MultiQC | `ShortRead::qa()`/`report()` | 03 — testado de ponta a ponta |
+| Bowtie2 | `Rbowtie2` (mesmo algoritmo, empacotado) | 04 — testado de ponta a ponta |
+| samtools (view/sort/index/flagstat/fixmate/markdup) | `Rsamtools` + `GenomicAlignments` | 04-05 — testado de ponta a ponta |
+| bedtools (`intersect -v` para blacklist) | `GenomicRanges::overlapsAny()` dentro de `Rsamtools::filterBam()` | 05 — testado de ponta a ponta |
+| deepTools (fingerprint/PCA/coverage/correlação) | `ChIPQC` (já instalado) | 06 — a testar quando o módulo for escrito |
 
 **R está instalado** (versões 4.5.2 e 4.6.0 em `C:\Program Files\R\`, ~515 pacotes já
-presentes incluindo todo `REQUIRED_PACKAGES` de §5.1) e os módulos 00-02 já foram
-executados de verdade contra os 4 datasets reais (ver histórico acima). As ferramentas
-de linha de comando (SRA Toolkit, FastQC, MultiQC, Bowtie2, samtools, MACS3, deepTools)
-**continuam ausentes do PATH** (verificado em 2026-07-13) — necessárias a partir do
-Módulo 03. `00_setup.R` verifica a presença de cada uma via `Sys.which()` e avisa (sem
-interromper) quando ausente. Os módulos 03+ seguem sendo desenvolvidos como código
-revisado (sintaxe validada via `Rscript`) mas não podem ser executados de ponta a ponta
-até essas ferramentas serem instaladas.
+presentes incluindo todo `REQUIRED_PACKAGES` de §5.1) e os módulos 00-05 já foram
+executados de ponta a ponta com dados reais/sintéticos reais (ver histórico abaixo).
+
+**MACS3 no Windows — por que via WSL:** o `bioconda` não publica build de MACS3 para
+Windows (`win-64`); compilar via `pip` no Windows falha por faltar o Visual C++ Build
+Tools (dependência transitiva `cykhash`). A solução foi instalar o Miniconda **dentro
+do WSL** (Ubuntu-24.04, já presente na máquina) — lá o bioconda funciona normalmente,
+sem precisar de `sudo` (Miniconda instala no `$HOME` do usuário). O ambiente `chipseq`
+com MACS3 3.0.4 fica em `~/miniconda3/envs/chipseq/bin/macs3` dentro do WSL. O Módulo
+07 (a implementar) deve chamar o MACS3 via as funções auxiliares já criadas em
+`00_setup.R`: `win_to_wsl_path()` (converte `C:/...` para `/mnt/c/...`) e `run_macs3()`
+(roda `wsl -d Ubuntu-24.04 -- bash -lc "~/miniconda3/envs/chipseq/bin/macs3 ..."`).
+`check_macs3_wsl()` verifica a disponibilidade sem interromper o Módulo 00.
 
 ### 5.3 Versões
 
@@ -254,28 +324,77 @@ inválida):
    por consistência metodológica com a decisão nº2 (não é necessário perguntar de novo
    ao usuário — mesmo princípio já aprovado).
 
+### 9.1 Decisão de Peak Calling para XPC-KO sem Input (GSE214182)
+
+**Problema:** as 6 amostras XPC-KO (GSM6600722/723/730/731/738/739) não têm nenhum
+input/controle pareado — nem próprio, nem substituto de H3K4me3 (que só existe para
+WT/ASH1L-KO, ver decisão nº4 acima).
+
+**Decisão (2026-07-13):** peak calling do XPC-KO com **MACS3 sem controle
+experimental** (`--nolambda`), usando apenas o modelo de Poisson baseado na
+profundidade de sequenciamento da própria amostra.
+
+**Alternativas rejeitadas e por quê:**
+- *Input de WT como controle* — rejeitado: introduziria viés dependente de genótipo
+  (o background de cromatina de WT não é o mesmo do XPC-KO).
+- *H3K4me3 como substituto* — rejeitado: já é usado para WT/ASH1L-KO (decisão nº4);
+  usá-lo também para XPC-KO misturaria o mesmo controle em genótipos com braços de
+  comparação diferentes.
+- *Excluir XPC-KO da análise* — rejeitado: preserva a comparação biológica
+  WT-vs-deficiente que é o objetivo central do Módulo 08 para esta proteína.
+
+**Estratégia por condição (a implementar no Módulo 07):**
+```
+if (Input_available == TRUE) {
+  macs3 callpeak -t CHIP.bam -c INPUT.bam -f BAM --broad -q 0.01   # XPC-WT, ASH1L-KO
+} else {
+  macs3 callpeak -t CHIP.bam -f BAM --broad --nolambda -q 0.01     # XPC-KO
+}
+```
+`Input_available` deve ser derivado automaticamente da coluna `Input` do metadata
+(`chipseq_metadata.csv`, Módulo 02) — nunca assumir que todas as amostras têm input.
+
+**Regras proibidas nesta decisão:** não usar input de WT para XPC-KO; não usar
+H3K4me3 como substituto para XPC-KO; não excluir XPC-KO automaticamente da análise;
+não comparar XPC-WT vs XPC-KO apenas por presença/ausência de pico.
+
+**Mitigação a jusante (Módulo 08):** como o peak calling do XPC-KO não tem controle,
+a análise diferencial **não pode depender só dos arquivos `.broadPeak`**. O Módulo 08
+deve: (1) construir uma região consenso XPC-WT ∪ XPC-KO via `GenomicRanges::reduce()`;
+(2) quantificar reads de ChIP em todas as regiões consenso; (3) comparar WT vs XPC-KO
+por **contagem de reads na mesma região** (`DiffBind` e/ou `csaw`), não por
+presença/ausência binária de pico.
+
+**Validação adicional obrigatória para XPC-KO (Módulo 21):** FRiP score, número total
+de picos, largura média dos picos, distribuição de fold enrichment, correlação entre
+réplicas, PCA baseado na contagem de regiões consenso. Se uma réplica XPC-KO for
+outlier extremo em relação às demais, sinalizar no relatório final.
+
+**Impacto esperado:** FRiP/FDR menos confiáveis para XPC-KO que para XPC-WT (sem
+modelagem de background local); espera-se também um número de picos "específicos"
+muito menor no XPC-KO, o que serve como validação positiva de sensibilidade do
+antocorpo/pipeline (não há proteína XPC para imunoprecipitar nesse genótipo).
+
 ## 10. Pendências futuras (TODO)
 
-- [ ] **XPC-KO não tem nenhum input/controle disponível** (nem mesmo o substituto de
-      H3K4me3, que só existe para WT/ASH1L-KO) — confirmado na execução real do
-      Módulo 02 em 2026-07-13. O Módulo 07 terá que rodar MACS3 sem controle pareado
-      para as 6 amostras XPC-KO (opção "peak calling sem controle", ex. `--nolambda`),
-      com FRiP/FDR esperados menos confiáveis — documentar isso explicitamente no
-      relatório do Módulo 07 e tratar como limitação conhecida na validação (Módulo 21).
+- [x] **XPC-KO sem input/controle disponível** — decisão tomada e registrada em §9.1
+      (MACS3 `--nolambda` + differential binding por contagem de reads em regiões
+      consenso, não por presença/ausência de pico). Falta implementar no Módulo 07/08.
+- [x] ~~Instalar `Rbowtie2`~~ — instalado via BiocManager em 2026-07-13, testado de
+      ponta a ponta (build de índice + alinhamento real, 95% de taxa de alinhamento).
+- [x] ~~Instalar Python + MACS3~~ — Python 3.12 instalado (winget); MACS3 3.0.4
+      instalado dentro de um ambiente conda no **WSL** (bioconda não publica build
+      para Windows) — ver §5.2 para detalhes e `win_to_wsl_path()`/`run_macs3()` em
+      `00_setup.R`. Falta só usar essas funções ao escrever o Módulo 07.
 - [ ] Confirmar montagem de genoma real (hg38 vs hg19) para XPC e STAT1/STAT2 a partir
       dos metadados SOFT completos no Módulo 01 (não estava explícita nas páginas GEO
       consultadas) — validar antes do Módulo 12.
 - [ ] Buscar/baixar o input/controle ENCODE de ELK1 (ENCSR623KNM) via ENCODE portal, já
       que o input não aparece diretamente entre as 2 GSMs do GSE91923.
-- [ ] Implementar Módulos 03–22 (QC, alinhamento, filtragem, ChIP-QC, peak calling,
-      DiffBind, anotação, enriquecimento, GRanges, padronização de genoma, universo
-      regulatório, matriz de ocupação, overlaps, hotspots, redes, visualização,
-      validação, master pipeline).
-- [ ] Nenhuma ferramenta externa (Bowtie2/MACS3/samtools/FastQC/MultiQC/deepTools) está
-      instalada neste ambiente de desenvolvimento — execução real dos módulos 03+
-      requer ambiente com essas dependências.
+- [ ] Implementar Módulos 06–22 (ChIP-QC via ChIPQC, peak calling, DiffBind, anotação,
+      enriquecimento, GRanges, padronização de genoma, universo regulatório, matriz de
+      ocupação, overlaps, hotspots, redes, visualização, validação, master pipeline).
 - [ ] Considerar IRF9 (ChIP'd em ambas as séries de STAT1/STAT2) como 5ª proteína
       opcional em versão futura do projeto (fora do escopo atual de 4 proteínas).
 - [ ] Criar `Scripts/config/peakcalling_config.R` junto com o Módulo 07.
-- [ ] Primeiro commit e primeira tag (`v0.1.0` — estrutura inicial) pendente de
-      autorização do usuário para push ao GitHub.
+- [ ] Criar primeira tag (`v0.1.0` — estrutura inicial) quando o usuário autorizar.

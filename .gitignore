@@ -51,6 +51,10 @@ ProjetosCode/Arquivos/**/*.fastq.gz
 # Genoma/índices reconstruíveis a partir do BSgenome instalado
 ProjetosCode/Arquivos/genome_index/
 
+# Artefato deixado pelo pacote Rbowtie2 no diretório de trabalho (log de
+# stderr do bowtie2, sempre regenerado a cada alinhamento)
+.bowtie2.cerr.txt
+
 # Logs/sessionInfo são regenerados a cada execução -- não versionados
 # (a pasta em si permanece versionada via .gitkeep)
 ProjetosCode/Logs/*
