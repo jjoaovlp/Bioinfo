@@ -276,6 +276,28 @@ in-place; apenas lidos.
   (Nota: durante a investigação desta solução, um ambiente `sra-tools` chegou a ser
   instalado no ambiente conda `chipseq` do WSL como alternativa — acabou não sendo
   necessário, mas fica disponível caso o download via ENA falhe para alguma amostra.)
+- **2026-07-13** — **Bug crítico encontrado e corrigido em `download_fastq_ena()`**
+  durante a primeira tentativa real de baixar as 89 amostras: o `timeout` padrão do R
+  (`getOption("timeout")` = 60s) cortava o download no meio de arquivos grandes
+  (ChIP-seq facilmente passa de 1-4GB por amostra), e `download.file()` **não lança um
+  erro capturável** nesse caso — o arquivo fica silenciosamente truncado e o
+  `tryCatch` não detectava nada de errado. As primeiras 21 amostras baixadas nessa
+  tentativa (2,9GB) estavam **todas corrompidas** (`gzip -t` falhou com "unexpected
+  end of file"); o processo foi interrompido manualmente assim que isso foi
+  descoberto (via `Stop-Process` pelo PID específico, não por nome — matar por nome
+  poderia afetar outras sessões de R do usuário) e os arquivos truncados apagados.
+  Correção em `01_download.R`: `download_fastq_ena()` agora (1) eleva
+  `options(timeout=)` para 3600s durante o download (restaurado com `on.exit()`), (2)
+  compara o tamanho baixado com `fastq_bytes` esperado (vindo da ENA via
+  `resolve_srr_table()`), e (3) verifica a integridade do stream gzip por completo
+  (`verify_gzip_integrity()`) — um arquivo existente mas incompleto/corrompido é
+  apagado e baixado de novo, nunca aceito silenciosamente. Testado de ponta a ponta
+  com um arquivo real (SRR23051534, 346.653.269 bytes) — tamanho bateu exatamente e a
+  integridade foi confirmada. **Velocidade real medida: ~2,7 MB/s**, o que projeta
+  **~10 horas** para as 89 amostras (95GB) — bem mais que a estimativa inicial de
+  "algumas horas". Decisão do usuário: prosseguir mesmo assim com as 89 amostras
+  completas, rodando em processo desacoplado (`Start-Process` no PowerShell,
+  independente da sessão de ferramentas) monitorado periodicamente.
 
 ## 5. Dependências
 

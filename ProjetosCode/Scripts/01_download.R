@@ -207,29 +207,80 @@ resolve_srr_table <- function(pdata) {
   do.call(rbind, rows)
 }
 
+#' Verifica se um .fastq.gz esta integro (stream gzip completo, nao
+#' truncado) tentando ler ate o fim via uma conexao gzfile(). Um download
+#' truncado por timeout nao gera erro em download.file() por padrao (so um
+#' arquivo incompleto silencioso) -- por isso essa checagem e' essencial
+#' apos cada download, nunca assumir que "download.file() nao lancou erro"
+#' significa "arquivo integro".
+verify_gzip_integrity <- function(path) {
+  con <- gzfile(path, "rb")
+  on.exit(close(con), add = TRUE)
+  result <- tryCatch({
+    repeat {
+      chunk <- readBin(con, "raw", n = 1e7)
+      if (length(chunk) == 0) break
+    }
+    TRUE
+  }, error = function(e) FALSE, warning = function(w) FALSE)
+  result
+}
+
 #' Baixa os FASTQ de uma corrida diretamente do espelho HTTPS da ENA (sem
 #' SRA Toolkit). `fastq_ftp` pode ter 1 URL (single-end) ou 2 separadas por
-#' ";" (paired-end, mate 1/2). Nunca sobrescreve um FASTQ ja existente.
-download_fastq_ena <- function(fastq_ftp, dest_dir = PROJECT_DIRS$fastq) {
+#' ";" (paired-end, mate 1/2); `expected_bytes` (opcional, mesmo formato,
+#' vindo de fastq_bytes do Modulo 02/resolve_srr_table()) e' comparado ao
+#' tamanho final para detectar truncamento. Nunca sobrescreve um FASTQ ja
+#' existente E integro; um arquivo existente mas corrompido/incompleto e'
+#' removido e baixado de novo. O timeout de download e' elevado para esta
+#' chamada (arquivos de ChIP-seq facilmente passam de 1GB e nao cabem no
+#' timeout padrao de 60s do R) e restaurado ao sair.
+download_fastq_ena <- function(fastq_ftp, expected_bytes = NA_character_,
+                                 dest_dir = PROJECT_DIRS$fastq, timeout_sec = 3600) {
   if (is.na(fastq_ftp) || !nzchar(fastq_ftp)) {
     return(invisible(character(0)))
   }
+  old_timeout <- getOption("timeout")
+  options(timeout = max(timeout_sec, old_timeout))
+  on.exit(options(timeout = old_timeout), add = TRUE)
+
   ensure_dir(dest_dir)
   urls <- strsplit(fastq_ftp, ";")[[1]]
-  vapply(urls, function(u) {
+  expected <- suppressWarnings(as.numeric(strsplit(as.character(expected_bytes), ";")[[1]]))
+  vapply(seq_along(urls), function(i) {
+    u <- urls[i]
     full_url <- if (startsWith(u, "http")) u else paste0("https://", u)
     dest <- file.path(dest_dir, basename(u))
-    if (file.exists(dest)) {
-      log_message("01_download", sprintf("FASTQ ja existe: '%s'.", dest))
-    } else {
-      tryCatch({
-        log_message("01_download", sprintf("Baixando '%s'.", full_url))
-        utils::download.file(full_url, dest, quiet = TRUE, mode = "wb")
-      }, error = function(e) {
-        log_message("01_download", sprintf("Falha ao baixar '%s': %s", full_url, conditionMessage(e)),
-                    level = "ERROR")
-      })
+    exp_size <- if (length(expected) >= i) expected[i] else NA_real_
+
+    already_ok <- file.exists(dest) &&
+      (is.na(exp_size) || abs(file.size(dest) - exp_size) < 1024) &&
+      verify_gzip_integrity(dest)
+    if (already_ok) {
+      log_message("01_download", sprintf("FASTQ ja existe e esta integro: '%s'.", dest))
+      return(dest)
     }
+    if (file.exists(dest)) {
+      log_message("01_download", sprintf("FASTQ existente incompleto/corrompido, refazendo: '%s'.", dest),
+                  level = "WARN")
+      unlink(dest)
+    }
+    tryCatch({
+      log_message("01_download", sprintf("Baixando '%s'.", full_url))
+      utils::download.file(full_url, dest, quiet = TRUE, mode = "wb")
+      if (!is.na(exp_size) && abs(file.size(dest) - exp_size) > 1024) {
+        stop(sprintf("tamanho baixado (%.0f) difere do esperado (%.0f) -- download truncado.",
+                      file.size(dest), exp_size))
+      }
+      if (!verify_gzip_integrity(dest)) {
+        stop("arquivo .gz corrompido/truncado (falhou verificacao de integridade).")
+      }
+      log_message("01_download", sprintf("Download de '%s' concluido e verificado.", dest))
+    }, error = function(e) {
+      log_message("01_download", sprintf("Falha ao baixar '%s': %s", full_url, conditionMessage(e)),
+                  level = "ERROR")
+      unlink(dest)
+    })
     dest
   }, character(1))
 }
