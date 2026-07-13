@@ -47,8 +47,8 @@ in-place; apenas lidos.
 | 03 | `03_qc.R` | ✅ implementado e testado de ponta a ponta | `ShortRead::qa()`/`report()` + interpretação automática (% N, duplicação, adaptador) |
 | 04 | `04_alignment.R` | ✅ implementado e testado de ponta a ponta | `Rbowtie2` (build+align+bam) + `Rsamtools` (sort/index), parsing do log de alinhamento |
 | 05 | `05_filtering.R` | ✅ implementado e testado de ponta a ponta | `Rsamtools::filterBam()` (MAPQ nativo + dedup + blacklist ENCODE via `GenomicRanges`) em uma única passada |
-| 06 | `06_chip_qc.R` | ⬜ pendente | DeepTools (fingerprint, PCA, coverage, correlation, fragment size) |
-| 07 | `07_peakcalling.R` | ⬜ pendente | MACS3 (broad para XPC; narrow para ELK1/STAT1/STAT2) |
+| 06 | `06_chip_qc.R` | ✅ implementado (ChIPQCsample testado; batch não testado) | `ChIPQC`: fingerprint (SSD), fragment size, coverage; correlação/PCA em lote com 2+ amostras |
+| 07 | `07_peakcalling.R` | ✅ implementado e testado (mecanismo WSL/MACS3 validado) | MACS3 via WSL (broad para XPC; narrow para ELK1/STAT1/STAT2); `--nolambda` automático quando `Input` do metadata está ausente (CLAUDE.md S9.1) |
 | 08 | `08_diffbind.R` | ⬜ pendente | DiffBind — apenas XPC (WT vs XPC-KO) e STAT2 (WT vs STAT1-KO); ELK1 e STAT1 ficam fora (sem braço deficiente disponível) |
 | 09 | `09_annotation.R` | ⬜ pendente | ChIPseeker::annotatePeak() |
 | 10 | `10_enrichment.R` | ⬜ pendente | clusterProfiler, ReactomePA, msigdbr |
@@ -182,6 +182,16 @@ in-place; apenas lidos.
        o retorno da função diretamente.
     4. `interpret_qc_flags()`/diretório `Arquivos/qc/` (já corrigido antes) — mantido
        aqui por completude do padrão "sempre `ensure_dir()` antes de `write.csv()`".
+- **2026-07-13** — Implementados `06_chip_qc.R` (ChIPQC: fingerprint/SSD, fragment
+  size, coverage por amostra; correlação/PCA em lote) e `07_peakcalling.R` (MACS3 via
+  WSL, broad/narrow por proteína, `--nolambda` automático quando a coluna `Input` do
+  metadata está ausente) + `Scripts/config/peakcalling_config.R` com os parâmetros
+  científicos por proteína. `ChIPQCsample()` e o mecanismo completo de chamada do
+  MACS3 via WSL (conversão de caminho, quoting, invocação real) foram testados de
+  ponta a ponta. Bug real encontrado e corrigido: caminhos do Windows com espaço
+  (comuns em nomes de usuário) quebravam em múltiplos tokens no `bash -lc` do WSL
+  porque `win_to_wsl_path()` não era envolvida em `shQuote()` antes de compor os
+  argumentos do MACS3 em `call_peaks_macs3()`.
 
 ## 5. Dependências
 
@@ -377,9 +387,25 @@ antocorpo/pipeline (não há proteína XPC para imunoprecipitar nesse genótipo)
 
 ## 10. Pendências futuras (TODO)
 
-- [x] **XPC-KO sem input/controle disponível** — decisão tomada e registrada em §9.1
-      (MACS3 `--nolambda` + differential binding por contagem de reads em regiões
-      consenso, não por presença/ausência de pico). Falta implementar no Módulo 07/08.
+- [x] **XPC-KO sem input/controle disponível** — decisão registrada em §9.1 e
+      **implementada** no Módulo 07 (`determine_macs3_args()` lê `has_input`
+      diretamente, nunca assume). Falta a parte de differential binding por
+      contagem de reads em regiões consenso no Módulo 08.
+- [x] ~~Implementar Módulo 06 (ChIP-QC)~~ — `06_chip_qc.R` implementado com `ChIPQC`;
+      `ChIPQCsample()` testado de ponta a ponta (fingerprint/SSD, fragment size,
+      coverage, com `peaks=NULL` antes do peak calling). `run_chipqc_batch()`
+      (correlação/PCA com 2+ amostras) não testado por falta de 2 amostras reais
+      nesta sessão — validar quando houver BAMs reais de mais de uma amostra.
+- [x] ~~Implementar Módulo 07 (Peak Calling)~~ — `07_peakcalling.R` implementado;
+      mecanismo completo testado de ponta a ponta via WSL (conversão de caminho,
+      quoting, chamada real do MACS3, leitura do arquivo de picos). Um bug real de
+      quoting foi encontrado e corrigido: caminhos do Windows com espaço (ex. nomes
+      de usuário) quebravam em tokens separados no `bash -lc` do WSL sem `shQuote()`
+      ao redor de cada `win_to_wsl_path()`. O teste com dados sintéticos não gerou
+      picos reais (MACS3 precisa de ≥100 pares de picos +/- para construir o modelo
+      de fragmento, e o FASTQ de teste do `Rbowtie2` tem poucochíssimas reads) — isso
+      é uma limitação do dado de teste, não do pipeline; validar com FASTQ real
+      quando disponível.
 - [x] ~~Instalar `Rbowtie2`~~ — instalado via BiocManager em 2026-07-13, testado de
       ponta a ponta (build de índice + alinhamento real, 95% de taxa de alinhamento).
 - [x] ~~Instalar Python + MACS3~~ — Python 3.12 instalado (winget); MACS3 3.0.4
