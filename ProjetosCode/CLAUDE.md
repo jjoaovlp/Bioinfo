@@ -61,9 +61,9 @@ in-place; apenas lidos.
 | 17 | `17_hotspots.R` | ✅ implementado e testado de ponta a ponta | Occupancy score, anotação genômica (ChIPseeker) e ranking |
 | 18 | `18_bipartite_network.R` | ✅ implementado e testado de ponta a ponta | Rede Proteína→Região→Gene (igraph/tidygraph/ggraph), grau/betweenness/closeness/comunidades, export Cytoscape (GraphML) |
 | 19 | `19_pathway_network.R` | ✅ implementado e testado de ponta a ponta (PPI real) | Rede PPI via `STRINGdb` (real, testada com GAPDH/TP53/MYC/EGFR/STAT1) + redes de similaridade GO/Reactome (`enrichplot::emapplot`) |
-| 20 | `20_visualization.R` | ⬜ pendente | Padronização de figuras |
-| 21 | `21_validation.R` | ⬜ pendente | Validação científica e técnica, com interrupção em falha crítica |
-| 22 | `22_master_pipeline.R` | ⬜ pendente | Orquestração + relatório final |
+| 20 | `20_visualization.R` | ✅ implementado e testado | Paleta/tema padrão, `save_figure()` multi-formato (PNG+PDF+SVG, ≥300dpi), manifesto de figuras |
+| 21 | `21_validation.R` | ✅ implementado e testado com metadata real | Bateria de checks PASS/WARN/FAIL (duplicatas, espécie, genoma, réplicas, alinhamento, picos, GRanges, strand) — interrompe em qualquer FAIL |
+| 22 | `22_master_pipeline.R` | ✅ implementado e testado de ponta a ponta (incl. download real) | Orquestra 01-21 com status OK/FALHOU/PULADO por módulo, tempo de execução, relatório HTML (+ PDF se houver pandoc), sessionInfo, árvore de arquivos |
 
 ## 4. Histórico de alterações
 
@@ -243,6 +243,23 @@ in-place; apenas lidos.
   corretamente detectadas); Módulo 19 com uma **rede PPI real** via STRINGdb
   (GAPDH/TP53/MYC/EGFR/STAT1 — 5/5 genes mapeados, 20 arestas). Nenhum bug novo
   encontrado nesta dupla de módulos.
+- **2026-07-13** — **Pipeline completo (22/22 módulos) implementado.** Últimos três:
+  `20_visualization.R` (paleta Okabe-Ito colorblind-safe, tema ggplot2 padrão,
+  `save_figure()` multi-formato PNG+PDF+SVG ≥300dpi, manifesto de figuras),
+  `21_validation.R` (bateria de checks PASS/WARN/FAIL — duplicata de amostra, espécie
+  mista, genoma inválido, réplicas insuficientes, BAM sem índice, taxa de alinhamento,
+  picos vazios, FRiP, GRanges inválido, orientação de strand — interrompe a execução em
+  qualquer FAIL) e `22_master_pipeline.R` (orquestra 01-21, tolerante a falha por
+  padrão: um módulo sem o `config` necessário é marcado "PULADO", um que falhar é
+  marcado "FALHOU" e o pipeline segue; gera relatório HTML sempre, PDF se houver
+  pandoc, `sessionInfo()`, árvore de arquivos e tabela resumo com tempo por módulo).
+  **Testado de ponta a ponta de verdade**, incluindo download real do GEO: rodando
+  `run_master_pipeline()` só com `metadata_df` no config, os Módulos 01 e 02 executaram
+  de verdade (download real, ~138s e ~133s), os Módulos 03-16/18-19 foram corretamente
+  pulados (faltava config), o Módulo 17 falhou com uma mensagem clara e específica
+  (dependia do Módulo 14, que tinha sido pulado) sem derrubar o pipeline, e os Módulos
+  20/21 rodaram OK — relatório HTML gerado corretamente, PDF pulado (sem pandoc nesta
+  máquina). Nenhum bug encontrado nesta etapa final.
 
 ## 5. Dependências
 
