@@ -138,7 +138,8 @@ REQUIRED_PACKAGES <- c(
   "GenomicRanges", "GenomicFeatures", "rtracklayer",
   "ShortRead", "Rsamtools", "GenomicAlignments", "Rbowtie2", "ChIPQC", "csaw",
   "ChIPseeker", "org.Hs.eg.db",
-  "DiffBind", "clusterProfiler", "ReactomePA", "msigdbr",
+  "DiffBind", "clusterProfiler", "ReactomePA", "msigdbr", "enrichplot",
+  "TxDb.Hsapiens.UCSC.hg38.knownGene",
   "STRINGdb", "igraph", "tidygraph", "ggraph",
   "data.table", "dplyr", "tidyr", "purrr", "stringr", "readr",
   "ggplot2", "yaml", "rmarkdown", "knitr"

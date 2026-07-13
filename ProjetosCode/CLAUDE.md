@@ -59,8 +59,8 @@ in-place; apenas lidos.
 | 15 | `15_pairwise_overlap.R` | ✅ implementado e testado de ponta a ponta | `findOverlaps()`, índice de Jaccard, heatmap |
 | 16 | `16_multiple_overlap.R` | ✅ implementado e testado de ponta a ponta | Interseção múltipla (`Reduce(intersect, ...)`) entre as 4 proteínas |
 | 17 | `17_hotspots.R` | ✅ implementado e testado de ponta a ponta | Occupancy score, anotação genômica (ChIPseeker) e ranking |
-| 18 | `18_bipartite_network.R` | ⬜ pendente | igraph/tidygraph/ggraph, export Cytoscape |
-| 19 | `19_pathway_network.R` | ⬜ pendente | STRINGdb, GO/Reactome network |
+| 18 | `18_bipartite_network.R` | ✅ implementado e testado de ponta a ponta | Rede Proteína→Região→Gene (igraph/tidygraph/ggraph), grau/betweenness/closeness/comunidades, export Cytoscape (GraphML) |
+| 19 | `19_pathway_network.R` | ✅ implementado e testado de ponta a ponta (PPI real) | Rede PPI via `STRINGdb` (real, testada com GAPDH/TP53/MYC/EGFR/STAT1) + redes de similaridade GO/Reactome (`enrichplot::emapplot`) |
 | 20 | `20_visualization.R` | ⬜ pendente | Padronização de figuras |
 | 21 | `21_validation.R` | ⬜ pendente | Validação científica e técnica, com interrupção em falha crítica |
 | 22 | `22_master_pipeline.R` | ⬜ pendente | Orquestração + relatório final |
@@ -235,6 +235,14 @@ in-place; apenas lidos.
   para `data.frame`, `annotate_hotspots()` foi corrigida para copiar
   `names(hotspot_gr)` para uma metadata column explícita (`region_id`) antes de
   anotar.
+- **2026-07-13** — Implementados `18_bipartite_network.R` (rede Proteína→Região→Gene,
+  métricas de grau/betweenness/closeness/comunidades via `igraph`, export Cytoscape em
+  GraphML) e `19_pathway_network.R` (rede PPI via `STRINGdb` + redes de similaridade
+  GO/Reactome via `enrichplot::emapplot`). Testados de ponta a ponta: Módulo 18 com o
+  cenário sintético dos módulos 13-17 (rede de 7 nós/5 arestas, 2 comunidades
+  corretamente detectadas); Módulo 19 com uma **rede PPI real** via STRINGdb
+  (GAPDH/TP53/MYC/EGFR/STAT1 — 5/5 genes mapeados, 20 arestas). Nenhum bug novo
+  encontrado nesta dupla de módulos.
 
 ## 5. Dependências
 
