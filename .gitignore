@@ -51,6 +51,18 @@ ProjetosCode/Arquivos/**/*.fastq.gz
 # Genoma/índices reconstruíveis a partir do BSgenome instalado
 ProjetosCode/Arquivos/genome_index/
 
+# Genoma de referencia hg38 baixado (UCSC) e indice Bowtie2 construido a
+# partir dele -- grandes (~8GB) e 100% reconstruiveis via build_hg38_index
+ProjetosCode/Arquivos/genome/hg38.fa
+ProjetosCode/Arquivos/genome/hg38.fa.gz
+ProjetosCode/Arquivos/genome/hg38_bowtie2_index/
+
+# Saidas de analise real regeneraveis a partir dos modulos (QC, alinhamento,
+# filtragem, etc.) -- nao versionadas para nao inflar o repo a cada rodada
+ProjetosCode/Arquivos/qc/
+ProjetosCode/Arquivos/alignment/
+ProjetosCode/Arquivos/filtering/
+
 # Artefato deixado pelo pacote Rbowtie2 no diretório de trabalho (log de
 # stderr do bowtie2, sempre regenerado a cada alinhamento)
 .bowtie2.cerr.txt

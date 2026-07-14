@@ -28,9 +28,20 @@
 ## `python.exe`; foi criada uma copia `python3.exe` ao lado dela nesta
 ## maquina). Ver CLAUDE.md S5.2 para o registro dessa dependencia.
 ##
+## Observacao (2026-07-14, bug real encontrado com dados reais): o binario
+## do bowtie2 usado por esta instalacao do Rbowtie2 no Windows **nao le
+## `.fastq.gz` corretamente** -- processa so uma fracao minuscula do
+## arquivo e para silenciosamente, sem lancar erro (testado: um FASTQ real
+## de 10000 reads comprimido produzia so 10 reads alinhados; o mesmo
+## arquivo descomprimido produzia os 10000 corretamente). Por isso
+## align_sample() descompacta qualquer FASTQ .gz para um arquivo temporario
+## antes de chamar bowtie2_samtools(), e remove o temporario logo depois
+## (ver decompress_fastq_if_needed()). Isso usa mais disco/tempo por
+## amostra, mas e' necessario para resultados corretos nesta maquina.
+##
 ## Funcoes definidas neste modulo:
-##   build_bowtie2_index(), align_sample(), parse_alignment_log(),
-##   run_module_04()
+##   build_bowtie2_index(), decompress_fastq_if_needed(), align_sample(),
+##   parse_alignment_log(), run_module_04()
 ## ============================================================================
 
 source(here::here("Scripts", "00_setup.R"))
@@ -64,6 +75,31 @@ build_bowtie2_index <- function(reference_fasta, index_prefix, threads = 4) {
     ), call. = FALSE)
   }
   invisible(index_prefix)
+}
+
+## --- descompressao (bowtie2 nesta instalacao nao le .fastq.gz corretamente) -----------
+
+#' Descompacta um FASTQ .gz para um arquivo temporario, se necessario (ver
+#' nota no cabecalho do modulo). Devolve list(path=, is_temp=) -- se o
+#' arquivo ja for texto plano, devolve o proprio caminho com is_temp=FALSE
+#' (nada a limpar depois).
+decompress_fastq_if_needed <- function(fastq_path) {
+  if (!grepl("\\.gz$", fastq_path)) {
+    return(list(path = fastq_path, is_temp = FALSE))
+  }
+  temp_path <- file.path(tempdir(), sub("\\.gz$", "", basename(fastq_path)))
+  log_message("04_alignment", sprintf(
+    "Descompactando '%s' (bowtie2 desta instalacao nao le .gz corretamente).", fastq_path
+  ))
+  con_in <- gzfile(fastq_path, "rb")
+  con_out <- file(temp_path, "wb")
+  on.exit({ close(con_in); close(con_out) }, add = TRUE)
+  repeat {
+    chunk <- readBin(con_in, "raw", n = 1e8)
+    if (length(chunk) == 0) break
+    writeBin(chunk, con_out)
+  }
+  list(path = temp_path, is_temp = TRUE)
 }
 
 ## --- estatisticas de alinhamento a partir do log do bowtie2 ------------------------
@@ -102,6 +138,19 @@ align_sample <- function(sample_id, fastq1, fastq2 = NULL, index_prefix, threads
   }
   log_message("04_alignment", sprintf("Alinhando amostra '%s' (Rbowtie2).", sample_id))
 
+  ## O bowtie2 desta instalacao (Windows) nao le .fastq.gz corretamente --
+  ## processa so uma fracao minuscula do arquivo e para silenciosamente,
+  ## sem erro (bug real encontrado em 2026-07-14 com dados reais, ver
+  ## CLAUDE.md: um arquivo de 10000 reads comprimido produzia so 10 reads
+  ## alinhados). Por isso FASTQ .gz sao descompactados para um arquivo
+  ## temporario antes do alinhamento e removidos logo depois.
+  fastq1_tmp <- decompress_fastq_if_needed(fastq1)
+  fastq2_tmp <- if (!is.null(fastq2)) decompress_fastq_if_needed(fastq2) else list(path = NULL, is_temp = FALSE)
+  on.exit({
+    if (fastq1_tmp$is_temp) unlink(fastq1_tmp$path)
+    if (fastq2_tmp$is_temp) unlink(fastq2_tmp$path)
+  }, add = TRUE)
+
   raw_prefix <- file.path(tempdir(), sample_id)
   ## bowtie2_samtools() devolve (de forma invisivel) as linhas do log de
   ## alinhamento (stderr do bowtie2, gravado por ela em ".bowtie2.cerr.txt"
@@ -110,7 +159,7 @@ align_sample <- function(sample_id, fastq1, fastq2 = NULL, index_prefix, threads
   ## nao para a conexao de output do R).
   bowtie2_log <- bowtie2_samtools(
     bt2Index = index_prefix, output = raw_prefix, outputType = "bam",
-    seq1 = fastq1, seq2 = fastq2, bamFile = NULL, overwrite = TRUE,
+    seq1 = fastq1_tmp$path, seq2 = fastq2_tmp$path, bamFile = NULL, overwrite = TRUE,
     sprintf("--threads %d", threads)
   )
   raw_bam <- paste0(raw_prefix, ".bam")

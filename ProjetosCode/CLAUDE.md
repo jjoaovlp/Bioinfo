@@ -45,7 +45,7 @@ in-place; apenas lidos.
 | 01 | `01_download.R` | ✅ implementado e testado (SRR real resolvido para as 89 amostras) | Download de metadata/SOFT/processados do GEO; resolução SRX→SRR e download de FASTQ via API pública da ENA (sem SRA Toolkit) |
 | 02 | `02_metadata.R` | ✅ implementado e testado | Metadata padronizado; filtro para manter apenas WT/Controle e KO/KD/Deficiente (remove amostras tratadas com agente que não seja o próprio desenho WT-vs-KO). Rodado de ponta a ponta em 2026-07-13: 89 amostras mantidas, 84 descartadas — ver histórico. |
 | 03 | `03_qc.R` | ✅ implementado e testado de ponta a ponta | `ShortRead::qa()`/`report()` + interpretação automática (% N, duplicação, adaptador) |
-| 04 | `04_alignment.R` | ✅ implementado e testado de ponta a ponta | `Rbowtie2` (build+align+bam) + `Rsamtools` (sort/index), parsing do log de alinhamento |
+| 04 | `04_alignment.R` | ✅ implementado e corrigido para dados reais (ver §4, bug do .fastq.gz) | `Rbowtie2` (build+align+bam) + `Rsamtools` (sort/index), parsing do log de alinhamento; descompacta FASTQ .gz antes de alinhar |
 | 05 | `05_filtering.R` | ✅ implementado e testado de ponta a ponta | `Rsamtools::filterBam()` (MAPQ nativo + dedup + blacklist ENCODE via `GenomicRanges`) em uma única passada |
 | 06 | `06_chip_qc.R` | ✅ implementado (ChIPQCsample testado; batch não testado) | `ChIPQC`: fingerprint (SSD), fragment size, coverage; correlação/PCA em lote com 2+ amostras |
 | 07 | `07_peakcalling.R` | ✅ implementado e testado (mecanismo WSL/MACS3 validado) | MACS3 via WSL (broad para XPC; narrow para ELK1/STAT1/STAT2); `--nolambda` automático quando `Input` do metadata está ausente (CLAUDE.md S9.1) |
@@ -298,6 +298,34 @@ in-place; apenas lidos.
   "algumas horas". Decisão do usuário: prosseguir mesmo assim com as 89 amostras
   completas, rodando em processo desacoplado (`Start-Process` no PowerShell,
   independente da sessão de ferramentas) monitorado periodicamente.
+- **2026-07-14** — Download das 89 amostras concluído (89GB, todas íntegras). Genoma
+  hg38 (UCSC) baixado e índice Bowtie2 construído com sucesso. Módulo 03 (QC) rodado
+  de ponta a ponta nas 89 amostras reais. Ao iniciar o Módulo 04 (alinhamento) real,
+  dois bugs adicionais apareceram:
+  1. O processo desacoplado do índice hg38 falhou na primeira tentativa com o mesmo
+     bug do `python3`/PATH já conhecido (§ acima) — o processo `Start-Process` não
+     herdou a atualização de PATH feita numa sessão PowerShell anterior. Corrigido
+     definindo `$env:PATH` explicitamente na mesma chamada que lança o processo
+     desacoplado, e relançado com sucesso.
+  2. **Bug crítico real, encontrado só com dados reais**: o binário do Bowtie2 usado
+     por esta instalação do `Rbowtie2` no Windows **não lê `.fastq.gz` corretamente**
+     — processa só uma fração minúscula do arquivo e para silenciosamente, sem
+     lançar erro. Só apareceu porque os testes anteriores sempre usaram FASTQ de
+     exemplo do próprio pacote `Rbowtie2` (não comprimidos); esta foi a primeira vez
+     alinhando um `.fastq.gz` real. Sintoma: a amostra GSM6600715 (111.135.914 reads
+     reais, confirmado via `zcat | wc -l`) "alinhou" em 15 segundos reportando **22
+     reads processados** — impossível para um arquivo real desse tamanho. Teste
+     isolado confirmou: uma fatia de 10.000 reads comprimida produzia só 10 reads
+     alinhados; a mesma fatia descomprimida produzia os 10.000 corretamente
+     (94,49% de taxa de alinhamento, idêntico nos dois casos após a correção).
+     **69 das 89 amostras já tinham sido "alinhadas" incorretamente** antes de o
+     problema ser notado (o processo rodava ~15s por amostra em vez de minutos) —
+     todos os 69 BAMs errados foram apagados. Corrigido em `04_alignment.R`:
+     `decompress_fastq_if_needed()` descompacta qualquer FASTQ `.gz` para um arquivo
+     temporário antes de `bowtie2_samtools()`, removido logo depois (via `on.exit()`).
+     Validado com a mesma fatia de teste: 10.000/10.000 reads, 94,49% de alinhamento,
+     idêntico ao arquivo descomprimido de referência. Módulo 04 relançado do zero
+     para as 89 amostras com a correção.
 
 ## 5. Dependências
 
