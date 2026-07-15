@@ -326,6 +326,26 @@ in-place; apenas lidos.
      Validado com a mesma fatia de teste: 10.000/10.000 reads, 94,49% de alinhamento,
      idêntico ao arquivo descomprimido de referência. Módulo 04 relançado do zero
      para as 89 amostras com a correção.
+- **2026-07-15** — **Decisão de priorização do usuário**: XPC é a proteína mais
+  importante do projeto. Dentro do XPC, o **ASH1L-KO fica de fora por enquanto**
+  (é a comparação secundária/exploratória — CLAUDE.md §9 ponto 3 —, não a principal
+  do Módulo 08, que é WT vs XPC-KO). Isso reduz o XPC de 64,8GB (25 amostras) para
+  **39,5GB (16 amostras, WT+XPC-KO)** — uma redução de ~39% dentro do XPC, e de ~27%
+  no volume total do projeto (95,3GB → ~70GB nesta rodada). O ASH1L-KO (9 amostras,
+  25,4GB) será processado depois, numa rodada separada, quando "sobrar tempo".
+  Na hora da decisão, o Módulo 04 já tinha processado 9 amostras (GSM6600715-723):
+  4 WT + 3 ASH1L-KO + 2 XPC-KO — os 3 ASH1L-KO já feitos não foram descartados
+  (ficam prontos para quando essa parte for retomada), só não se processou mais
+  nenhum ASH1L-KO daqui em diante. A fila foi reconstruída a partir do metadata,
+  removendo as 9 amostras já concluídas e todas as `Genotype == "ASH1L-KO"`
+  restantes, e reordenada por prioridade: **XPC (WT+XPC-KO) → Input → STAT2 → STAT1
+  → ELK1** (74 amostras nesta fila). O processo anterior foi parado de forma limpa
+  (`Stop-Process` pelo PID específico, nunca por nome) depois que a amostra em
+  andamento terminou, para não desperdiçar trabalho já feito; um processo órfão do
+  `bowtie2-align-s` (cujo processo R pai já tinha sido encerrado) e ~46GB de
+  arquivos temporários da amostra que estava em andamento no momento da parada
+  (que não foram limpos por `Stop-Process -Force` pular o `on.exit()` do R) também
+  foram removidos.
 
 ## 5. Dependências
 
