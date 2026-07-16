@@ -346,6 +346,45 @@ in-place; apenas lidos.
   arquivos temporários da amostra que estava em andamento no momento da parada
   (que não foram limpos por `Stop-Process -Force` pular o `on.exit()` do R) também
   foram removidos.
+- **2026-07-15** — **Interrupção não planejada**: o computador reiniciou sozinho
+  (`LastBootUpTime` às 06:57, sem ação do usuário — provavelmente atualização
+  automática do Windows) enquanto o Módulo 04 alinhava `GSM6600725`, matando o
+  processo silenciosamente (sem erro capturável, já que o SO inteiro reiniciou).
+  Retomado sem perda: os 10 BAMs já concluídos permaneceram intactos, nenhum
+  arquivo parcial/corrompido foi deixado para trás, e o script (idempotente por
+  design — sempre filtra `Dados/BAM/*.sorted.bam` já existentes) foi relançado e
+  retomou exatamente de `GSM6600725` em diante.
+- **2026-07-15** — **Auto-orquestração da análise do XPC**: decisão do usuário de
+  que, assim que XPC (WT+XPC-KO) e seus inputs terminarem de alinhar, a análise
+  (filtragem→ChIP-QC→peak calling→differential binding) deve começar
+  automaticamente, sem esperar STAT1/STAT2/ELK1. **Achado durante o planejamento**:
+  as 3 amostras de H3K4me3 que seriam o input substituto do XPC-WT
+  (GSM6600680/686/692, uma por timepoint — decisão registrada em §9 ponto 4) tinham
+  sido excluídas do metadata final no Módulo 02 (ficaram só em
+  `chipseq_metadata_filtered_out.csv`, fora do escopo das 4 proteínas do projeto) e
+  por isso nunca tinham sido baixadas. O SRR/`fastq_ftp` já estava resolvido para
+  elas (6,1GB no total). Decisão do usuário: baixar e alinhar essas 3 amostras
+  também antes de considerar "XPC + inputs" completo (preserva a metodologia
+  original de usar H3K4me3 como substituto de input para XPC-WT).
+
+  Implementado um script orquestrador único (`run_xpc_priority_pipeline.R`) que:
+  (1) termina o alinhamento do XPC (WT+XPC-KO) restante + as 3 H3K4me3; (2) roda
+  automaticamente os Módulos 05 (filtragem), 06 (ChIP-QC), 07 (peak calling — WT
+  usa o H3K4me3 correspondente como input via a coluna `Input` do metadata,
+  XPC-KO usa `--nolambda`, sem intervenção manual) e 08 (differential binding,
+  chamando diretamente `build_consensus_regions()`/`run_diffbind_consensus_count()`/
+  `save_diffbind_results()` de `08_diffbind.R` — não o `run_module_08()` completo,
+  que exige também dados de STAT2 ainda não alinhados); (3) só então continua para
+  o restante da fila (Input→STAT2→STAT1→ELK1).
+
+  Durante o download dos 3 H3K4me3, a rede caiu repetidamente no meio de
+  transferências grandes (`download.file()` do R e `curl` falharam várias vezes
+  com "Failure when receiving data from the peer"/erro de TLS do schannel,
+  mesmo com `--retry`). Resolvido usando o **BITS** (Background Intelligent
+  Transfer Service, serviço nativo do Windows) via `Start-BitsTransfer`/
+  `Resume-BitsTransfer` — mais resiliente a quedas de conexão que
+  `download.file()`/`curl` para arquivos grandes nesta rede. Os 3 arquivos foram
+  baixados e verificados (tamanho exato + integridade gzip) com sucesso.
 
 ## 5. Dependências
 
