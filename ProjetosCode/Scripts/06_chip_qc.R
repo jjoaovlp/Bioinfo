@@ -27,6 +27,8 @@
 ##
 ## Dependencias:
 ##   00_setup.R
+##   05_filtering.R (download_encode_blacklist(), reaproveitada para o
+##     ponto "Post_Blacklist" do plotSSD())
 ##   ChIPQC (Bioconductor)
 ##
 ## Funcoes definidas neste modulo:
@@ -35,6 +37,7 @@
 ## ============================================================================
 
 source(here::here("Scripts", "00_setup.R"))
+source(here::here("Scripts", "05_filtering.R"))
 install_if_missing("ChIPQC")
 suppressMessages(library(ChIPQC))
 
@@ -81,7 +84,18 @@ save_sample_qc_plots <- function(qc_sample, sample_id, output_dir = CHIPQC_FIG_D
 #' Monta a folha de amostras no formato esperado por ChIPQC() (estilo
 #' DiffBind) a partir de samples_df (colunas: sample_id, bam, factor,
 #' condition, replicate, peaks [opcional]) e roda ChIPQC() para o lote.
+#'
+#' Forca execucao serial (BiocParallel::SerialParam()) antes de chamar
+#' ChIPQC(): os workers SNOW do BiocParallel (paralelismo default no
+#' Windows) rodam em processos-filho que nao carregam automaticamente o
+#' namespace de GenomeInfoDb, e ChIPQC() usa `seqlevels<-` internamente --
+#' isso derruba a execucao inteira com "nao foi possivel encontrar a funcao
+#' 'seqlevels<-'" assim que o lote de amostras e' processado em paralelo
+#' (visto na pratica com 19 amostras). Rodar serial evita o problema (mais
+#' lento, mas roda no processo principal que ja tem o namespace carregado).
 run_chipqc_batch <- function(samples_df, blacklist_gr = NULL) {
+  install_if_missing("BiocParallel")
+  BiocParallel::register(BiocParallel::SerialParam(), default = TRUE)
   sample_sheet <- data.frame(
     SampleID = samples_df$sample_id,
     Factor = samples_df$factor,
@@ -117,9 +131,19 @@ save_batch_qc_plots <- function(chipqc_exp, output_dir = CHIPQC_FIG_DIR) {
 #' Executa o Modulo 06 completo: QC por amostra (fragment size, fingerprint)
 #' e, se houver 2+ amostras, correlacao e PCA em lote. Salva as metricas
 #' numericas (FRiP, SSD, fragment length estimado) em CSV.
-run_module_06 <- function(samples_df, blacklist_gr = NULL) {
+#'
+#' Se `blacklist_gr` nao for informado, carrega a blacklist ENCODE do
+#' `genome_build` (mesma usada no Modulo 05) para que plotSSD() produza o
+#' ponto "Post_Blacklist" alem do "Pre_Blacklist" -- sem isso, o ChIPQC nao
+#' tem contra o que comparar e o grafico de fingerprint fica com metade da
+#' legenda sem dado (o Modulo 05 ja filtra os BAMs, entao o efeito aqui e'
+#' mais para completar o grafico do que para remover reads novos).
+run_module_06 <- function(samples_df, blacklist_gr = NULL, genome_build = "hg38") {
   log_message("06_chip_qc", "Iniciando Modulo 06 -- QC especifico de ChIP.")
   ensure_dir(CHIPQC_ARQ_DIR)
+  if (is.null(blacklist_gr)) {
+    blacklist_gr <- download_encode_blacklist(genome_build)
+  }
 
   qc_samples <- lapply(seq_len(nrow(samples_df)), function(i) {
     row <- samples_df[i, ]

@@ -385,6 +385,59 @@ in-place; apenas lidos.
   `Resume-BitsTransfer` — mais resiliente a quedas de conexão que
   `download.file()`/`curl` para arquivos grandes nesta rede. Os 3 arquivos foram
   baixados e verificados (tamanho exato + integridade gzip) com sucesso.
+- **2026-07-16** — **Bug real encontrado por inspeção visual das figuras de QC**:
+  `run_module_06()` (`06_chip_qc.R`) era chamado sem `blacklist_gr` em
+  `run_xpc_priority_pipeline.R`, então `ChIPQCsample(..., blacklist = NULL)` nunca
+  calculava o ponto "Post_Blacklist" — o gráfico `plotSSD()` (fingerprint) mostrava
+  a legenda com duas categorias (Pre/Post_Blacklist) mas só o ponto "Pre_Blacklist"
+  aparecia, em todas as amostras conferidas (GSM6600715, GSM6600722). O gráfico de
+  fragment size/cross-coverage (`plotCC()`) estava correto (pico em shift ~150-160bp,
+  esperado para ChIP-seq). Corrigido em `06_chip_qc.R`: `run_module_06()` agora
+  carrega a blacklist ENCODE automaticamente via `download_encode_blacklist()`
+  (reaproveitada de `05_filtering.R`, agora `source()`ada como dependência) quando
+  `blacklist_gr` não é informado. **Decisão do usuário**: aplicar a correção só daqui
+  para frente (STAT2/STAT1/ELK1) — as 9 figuras de fingerprint de XPC já geradas
+  antes da correção não serão reprocessadas (o dado em si não muda, já que o
+  Módulo 05 já filtra os BAMs contra a blacklist antes do ChIP-QC rodar; o efeito é
+  só cosmético/informativo no gráfico).
+- **2026-07-17** — **Crash real do pipeline**: `run_xpc_priority_pipeline.R` (PID
+  2688) completou o ChIP-QC individual das 19 amostras de XPC+H3K4me3 com sucesso
+  (`Arquivos/chip_qc/chipqc_metrics.csv` salvo), mas a etapa em lote
+  (`run_chipqc_batch()` → `ChIPQC()`, correlação+PCA entre as 19 amostras) falhou e
+  **derrubou o processo R inteiro**: `ChIPQC()` tentou paralelizar via BiocParallel
+  (10 workers SNOW, default no Windows), e os processos-filho não carregam
+  automaticamente o namespace de `GenomeInfoDb` — `seqlevels<-` (usada
+  internamente por `ChIPQC()`) não foi encontrada em nenhum worker, gerando
+  "BiocParallel errors... Execução interrompida". Nenhum dado científico foi
+  perdido (BAMs filtrados e métricas individuais das 19 amostras intactos), só a
+  etapa de comparação em lote não chegou a rodar, e por isso o script nunca
+  chegou no peak calling (Módulo 07).
+
+  **Corrigido** em `run_chipqc_batch()` (`06_chip_qc.R`): força
+  `BiocParallel::register(BiocParallel::SerialParam(), default = TRUE)` antes de
+  chamar `ChIPQC()`, evitando os workers SNOW (mais lento, mas roda no processo
+  principal que já tem o namespace carregado).
+
+  **Decisão do usuário**: como re-rodar `ChIPQC()` em lote recomputaria
+  `ChIPQCsample()` para as 19 amostras do zero (~24h, mesmo tempo do ChIP-QC
+  individual já feito), pular a correlação/PCA em lote por agora e seguir direto
+  para peak calling (Módulo 07) + differential binding (Módulo 08) — nenhum dos
+  dois depende do resultado do `ChIPQC()` em lote (usam só os BAMs filtrados e as
+  métricas individuais). O heatmap de correlação e o PCA entre amostras podem ser
+  gerados depois, separadamente, agora que o bug está corrigido.
+
+  Retomado com um novo script (`run_xpc_resume_after_chipqc.R`, novo PID 25560)
+  que pula direto para peak calling+diffbind e depois continua para o restante da
+  fila (Input→STAT2→STAT1→ELK1), igual ao script original.
+
+  **Bug secundário encontrado no processo de retomada**: a máquina tem duas
+  instalações de R (`R-4.5.2` e `R-4.6.0` em `C:\Program Files\R\`) — só a
+  `R-4.6.0` tem a biblioteca de ~515 pacotes do usuário
+  (`AppData\Local\R\win-library\4.6`); `R-4.5.2` só tem os ~30 pacotes base.
+  Resolver a versão do R automaticamente (ex.: `Get-ChildItem ... | Select-Object
+  -First 1`) pode pegar a errada por ordem alfabética. Usar sempre o caminho
+  explícito `C:\Program Files\R\R-4.6.0\bin\Rscript.exe` ao lançar scripts deste
+  projeto.
 
 ## 5. Dependências
 

@@ -62,6 +62,10 @@ ProjetosCode/Arquivos/genome/hg38_bowtie2_index/
 ProjetosCode/Arquivos/qc/
 ProjetosCode/Arquivos/alignment/
 ProjetosCode/Arquivos/filtering/
+ProjetosCode/Arquivos/chip_qc/
+ProjetosCode/Figuras/chip_qc/
+ProjetosCode/Arquivos/differential/
+ProjetosCode/Dados/Peaks/
 
 # Artefato deixado pelo pacote Rbowtie2 no diretório de trabalho (log de
 # stderr do bowtie2, sempre regenerado a cada alinhamento)
