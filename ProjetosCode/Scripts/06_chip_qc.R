@@ -106,21 +106,40 @@ run_chipqc_batch <- function(samples_df, blacklist_gr = NULL) {
     stringsAsFactors = FALSE
   )
   log_message("06_chip_qc", sprintf("Rodando ChIPQC em lote para %d amostra(s).", nrow(sample_sheet)))
-  ChIPQC(sample_sheet, annotation = NULL, blacklist = blacklist_gr)
+  chipqc_exp <- ChIPQC(sample_sheet, annotation = NULL, blacklist = blacklist_gr)
+  ## Salva o objeto ChIPQCexperiment em disco -- computa-lo custa horas
+  ## (recalcula ChIPQCsample de todas as amostras), entao guardar o RDS
+  ## permite regenerar os graficos de correlacao/PCA (save_batch_qc_plots())
+  ## depois sem recomputar tudo.
+  ensure_dir(CHIPQC_ARQ_DIR)
+  saveRDS(chipqc_exp, file.path(CHIPQC_ARQ_DIR, "chipqc_experiment.rds"))
+  chipqc_exp
 }
 
 #' Salva heatmap de correlacao e PCA entre amostras (so faz sentido com 2+
 #' amostras) em Figuras/chip_qc/.
+#'
+#' plotCorHeatmap()/plotPrincomp() do ChIPQC desenham em BASE GRAPHICS (nao
+#' devolvem objeto ggplot), entao precisam ser salvos abrindo um dispositivo
+#' png() e fechando com dev.off() -- usar ggplot2::ggsave() aqui gera imagem
+#' EM BRANCO (ggsave captura o dispositivo ggplot vazio, nao o base). Bug
+#' visto na pratica: correlation_heatmap.png e pca.png sairam identicos e
+#' totalmente brancos (2026-07-17).
 save_batch_qc_plots <- function(chipqc_exp, output_dir = CHIPQC_FIG_DIR) {
   ensure_dir(output_dir)
-  install_if_missing("ggplot2")
 
-  corr_plot <- plotCorHeatmap(chipqc_exp)
-  ggplot2::ggsave(file.path(output_dir, "correlation_heatmap.png"),
-                   corr_plot, width = 7, height = 6, dpi = 300)
+  save_base_plot <- function(file, plot_expr) {
+    grDevices::png(file, width = 7, height = 6, units = "in", res = 300)
+    on.exit(grDevices::dev.off(), add = TRUE)
+    tryCatch(plot_expr, error = function(e) {
+      log_message("06_chip_qc",
+        sprintf("Falha ao gerar '%s': %s", basename(file), conditionMessage(e)),
+        level = "WARN")
+    })
+  }
 
-  pca_plot <- plotPrincomp(chipqc_exp)
-  ggplot2::ggsave(file.path(output_dir, "pca.png"), pca_plot, width = 7, height = 6, dpi = 300)
+  save_base_plot(file.path(output_dir, "correlation_heatmap.png"), plotCorHeatmap(chipqc_exp))
+  save_base_plot(file.path(output_dir, "pca.png"), plotPrincomp(chipqc_exp))
 
   log_message("06_chip_qc", sprintf("Figuras de correlacao/PCA salvas em '%s'.", output_dir))
   invisible(TRUE)

@@ -487,6 +487,35 @@ in-place; apenas lidos.
   amostras de XPC+H3K4me3) que tinha crashado antes — agora com o fix de
   `BiocParallel::SerialParam()` já aplicado (`run_xpc_chipqc_batch.R`, PID
   12832).
+- **2026-07-17** — **Incidente de processo órfão do BiocParallel**: ao parar o
+  primeiro script de reprocessamento do fingerprint do XPC (PID 24120, para
+  adicionar a regeneração do `chipqc_metrics.csv`), o worker-filho que o
+  `ChIPQCsample()` havia spawnado via BiocParallel (PID 24748) **ficou órfão** e
+  continuou rodando, queimando um core inteiro e a caminho de colidir na escrita
+  dos mesmos arquivos de saída do run relançado. Detectado porque a CPU do
+  launcher legítimo estava ~0 enquanto deveria haver trabalho pesado; mapeada a
+  árvore de processos (`Get-CimInstance Win32_Process`) e o órfão foi morto por
+  PID específico antes de sobrescrever qualquer arquivo. **Lição**: ao parar um
+  processo que usa ChIPQC/BiocParallel, matar a árvore inteira (launcher +
+  worker-filho), nunca só o launcher. O launcher fica com CPU ~0; é o worker que
+  faz o trabalho pesado — para monitorar saúde, olhar a CPU do worker.
+- **2026-07-17** — **Bug real: `save_batch_qc_plots()` gerava imagens em branco**.
+  O ChIPQC em lote terminou com sucesso (SerialParam funcionou), mas
+  `correlation_heatmap.png` e `pca.png` sairam **byte-a-byte idênticos e
+  totalmente brancos**. Causa: `plotCorHeatmap()`/`plotPrincomp()` do ChIPQC
+  desenham em BASE GRAPHICS (não devolvem objeto ggplot), mas o código usava
+  `ggplot2::ggsave()`, que captura o dispositivo ggplot vazio → imagem branca,
+  a mesma nas duas chamadas. **Corrigido** em `save_batch_qc_plots()`
+  (`06_chip_qc.R`): abre dispositivo `grDevices::png()`, chama a função de plot,
+  fecha com `dev.off()` (via helper `save_base_plot()` com `on.exit()` e
+  `tryCatch()`). Também: `run_chipqc_batch()` agora salva o objeto
+  `ChIPQCexperiment` como `Arquivos/chip_qc/chipqc_experiment.rds`, para permitir
+  regenerar os gráficos sem recomputar (~10h) tudo de novo. **Pendência**: os
+  plots de correlação/PCA do XPC especificamente ficaram em branco (o run que os
+  gerou já tinha terminado com a versão bugada e não salvou o RDS) — serão
+  regenerados depois, quando não competir com o reprocessamento do fingerprint
+  em andamento. A correção já protege os plots em lote das próximas proteínas
+  (STAT2/STAT1/ELK1), que ainda vão rodar o Módulo 06.
 
 ## 5. Dependências
 
