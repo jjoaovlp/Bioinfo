@@ -438,6 +438,41 @@ in-place; apenas lidos.
   -First 1`) pode pegar a errada por ordem alfabética. Usar sempre o caminho
   explícito `C:\Program Files\R\R-4.6.0\bin\Rscript.exe` ao lançar scripts deste
   projeto.
+- **2026-07-17** — **Segundo crash real (Módulo 07, monitoramento autônomo)**: o
+  MACS3 não conseguiu construir o modelo de picos pareados para `GSM6600718`
+  ("MACS3 needs at least 100 paired peaks... but can only find 82! Process for
+  pairing-model is terminated!") — amostra de sinal mais fraco. Derrubou o
+  processo inteiro de novo (o `run_macs3()` propaga o código de saída não-zero
+  do WSL como `stop()`). **Corrigido** em `call_peaks_macs3()`
+  (`07_peakcalling.R`): agora tenta de novo automaticamente com `--nomodel
+  --extsize <fragment_length> --shift 0` quando isso acontece, usando o
+  comprimento de fragmento já estimado pelo Módulo 06 (cross-correlation, lido
+  de `Arquivos/chip_qc/chipqc_metrics.csv` via nova função
+  `lookup_chipqc_fragment_length()`) — é a alternativa que o próprio MACS3
+  sugere no aviso de erro. Retomado com `run_xpc_resume2_peakcalling.R` (PID
+  11440), reaproveitando os peaks já prontos (GSM6600715/716/717) e testado com
+  sucesso: as 16 amostras de XPC terminaram peak calling (fallback funcionou
+  para GSM6600718).
+
+  **Terceiro crash real (Módulo 08, monitoramento autônomo)**: com peak calling
+  100% completo, `save_diffbind_results()` falhou ao escrever o CSV
+  (`não é possível abrir a conexão`) porque `Arquivos/differential/` nunca tinha
+  sido criada — `ensure_dir(DIFFBIND_DIR)` só existia dentro de
+  `run_module_08()` (o pipeline completo, que exige também STAT2), não na
+  própria `save_diffbind_results()`, que é chamada diretamente pelos scripts de
+  retomada do XPC (decisão de arquitetura registrada acima). O consenso+contagem
+  de reads (`run_diffbind_consensus_count()`, 353522 regiões, 16 amostras) já
+  tinha rodado antes do crash mas não foi salvo, precisando ser recalculado.
+  **Corrigido**: `save_diffbind_results()` agora chama `ensure_dir(DIFFBIND_DIR)`
+  no próprio corpo, tornando-a independente de quem a chama. Retomado com
+  `run_xpc_resume3_diffbind.R` (PID 19960), reaproveitando os 16 peaks prontos e
+  refazendo só o diffbind.
+
+  Padrão notado nos 3 crashes: cada um revelou uma lacuna genuína de robustez
+  (bug de paralelismo, limite do MACS3 em amostras de sinal fraco, diretório de
+  saída assumido mas nunca criado) — nenhum foi um falso alarme de monitoramento.
+  Todos foram corrigidos no código-fonte (não só contornados no script de
+  retomada), então protegem também as próximas proteínas (STAT2/STAT1/ELK1).
 
 ## 5. Dependências
 

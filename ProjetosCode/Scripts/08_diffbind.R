@@ -164,7 +164,12 @@ run_module_08 <- function(xpc_samples, stat2_sample_sheet) {
 
 #' Salva a tabela completa e as 3 tabelas por categoria (ganhos/perdidos/
 #' estaveis) de uma proteina em Arquivos/differential/.
+#'
+#' Cria DIFFBIND_DIR se ainda nao existir -- necessario quando esta funcao e
+#' chamada diretamente (fora de run_module_08(), que ja garante o
+#' ensure_dir() antes), como nos scripts de retomada do XPC.
 save_diffbind_results <- function(protein, results_df) {
+  ensure_dir(DIFFBIND_DIR)
   write.csv(results_df, file.path(DIFFBIND_DIR, sprintf("%s_diffbind_full.csv", protein)),
             row.names = FALSE)
   for (status in c("Gained", "Lost", "Stable")) {

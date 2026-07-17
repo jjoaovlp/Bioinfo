@@ -65,6 +65,7 @@ ProjetosCode/Arquivos/filtering/
 ProjetosCode/Arquivos/chip_qc/
 ProjetosCode/Figuras/chip_qc/
 ProjetosCode/Arquivos/differential/
+ProjetosCode/Arquivos/peakcalling/
 ProjetosCode/Dados/Peaks/
 
 # Artefato deixado pelo pacote Rbowtie2 no diretório de trabalho (log de
