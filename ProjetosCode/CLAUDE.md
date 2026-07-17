@@ -474,6 +474,20 @@ in-place; apenas lidos.
   Todos foram corrigidos no código-fonte (não só contornados no script de
   retomada), então protegem também as próximas proteínas (STAT2/STAT1/ELK1).
 
+  **Marco: análise de XPC completa** (2026-07-17, 06:06:09) — 16 amostras de
+  XPC (10 WT + 6 XPC-KO) com peaks MACS3 (broad), differential binding via
+  DiffBind (consenso de 353.522 regiões) salvo em
+  `Arquivos/differential/XPC_*.csv`: 3.283 regiões ganhas, 2.499 perdidas,
+  347.740 estáveis (WT vs XPC-KO). O pipeline seguiu sozinho, sem intervenção,
+  para o restante da fila (64 amostras — Input/STAT2/STAT1/ELK1, Módulo 04).
+
+  Aproveitando que o alinhamento do restante estava rodando (não compete por
+  recursos com uma etapa nativa em R que só depende de BAMs já prontos),
+  relançada separadamente a etapa de ChIPQC em lote (correlação+PCA das 19
+  amostras de XPC+H3K4me3) que tinha crashado antes — agora com o fix de
+  `BiocParallel::SerialParam()` já aplicado (`run_xpc_chipqc_batch.R`, PID
+  12832).
+
 ## 5. Dependências
 
 ### 5.1 Pacotes do R (via BiocManager/CRAN)
