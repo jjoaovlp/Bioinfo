@@ -516,6 +516,38 @@ in-place; apenas lidos.
   regenerados depois, quando não competir com o reprocessamento do fingerprint
   em andamento. A correção já protege os plots em lote das próximas proteínas
   (STAT2/STAT1/ELK1), que ainda vão rodar o Módulo 06.
+- **2026-07-18** — **RE-ESCOPO do downstream** (aprovado pelo usuário; plano em
+  `.claude/plans/cozy-percolating-wind.md`). XPC recebe análise individual
+  completa (peak calling ✓, diffbind ✓, **anotação ✓** — ocupação WT 1577
+  regiões + regiões diferenciais ganhas/perdidas/estáveis separadas em
+  `Arquivos/annotation/XPC_*`; achado: perdidas 45% em promotor). As demais
+  (STAT1, STAT2, ELK1, **IRF9** como 5ª proteína) entram **só na metanálise
+  (Módulos 13–19), apenas WT**, nos timepoints **untreated + IFNα 2h** (2
+  réplicas), para achar o que há em comum — âncora no XPC (genes em comum
+  XPC∩combinações + Venn/UpSet, camada adicional). **Sem** diffbind das outras,
+  **sem** anotação individual das outras (a associação a genes das regiões
+  comuns vem dos Módulos 17/18), **sem** processar KO downstream. Filtragem
+  (Módulo 05) mantida completa (MAPQ+dedup+blacklist; a sobreposição Pre/Post nas
+  figuras é só o sub-passo da blacklist, marginal). ELK1 usa o input ENCODE
+  (controle ENCSR949BZP do experimento ELK1 ENCSR623KNM: ENCFF002ECM/ECL, A549,
+  input library, single-end 36nt). IRF9-WT (GSM6928595/596 UN, GSM6928599/600
+  IFNα2h) baixado da ENA (estava em `chipseq_metadata_filtered_out.csv`).
+- **2026-07-18** — **BLOQUEIO: Smart App Control (SAC) passou a bloquear o
+  bowtie2 nativo.** Ao alinhar as 6 amostras novas (4 IRF9 + 2 input ELK1) o
+  `bowtie2-align-s.exe` (não-assinado) falhou com "Permission denied" (status
+  126). Causa: o **Smart App Control do Windows 11 virou ENFORCEMENT**
+  (`HKLM:\SYSTEM\CurrentControlSet\Control\CI\Policy\VerifiedAndReputablePolicyState=1`)
+  e passou a bloquear executáveis não-assinados — funcionou nas 86 amostras
+  anteriores porque o SAC estava em avaliação/desligado, e flipou para
+  enforcement após um reboot/atualização. **Não afeta** ChIPQC/DiffBind/
+  ChIPseeker (pacotes R, rodam dentro do Rscript.exe assinado) nem o MACS3 (roda
+  no WSL/Linux). **Solução escolhida pelo usuário: alinhar via WSL** (não desligar
+  o SAC, que é irreversível no Win11). Instalados `bowtie2 2.5.5` + `samtools
+  1.24` no env conda `chipseq` do WSL (mesmo usado p/ MACS3); o índice hg38
+  (`.bt2`, independente de plataforma) e os FASTQ são lidos via `/mnt/c`; o
+  bowtie2 do Linux lê `.fastq.gz` direto (sem o bug do bowtie2 nativo). Script
+  `scratchpad/align_new_wsl.sh` (bowtie2 -p4 | samtools sort). **Qualquer
+  alinhamento futuro deve usar o WSL enquanto o SAC estiver em enforcement.**
 
 ## 5. Dependências
 
