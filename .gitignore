@@ -76,3 +76,17 @@ ProjetosCode/Dados/Peaks/
 # (a pasta em si permanece versionada via .gitkeep)
 ProjetosCode/Logs/*
 !ProjetosCode/Logs/.gitkeep
+
+# Saidas da metanalise WT (regeneraveis a partir dos picos, 2026-07-18)
+ProjetosCode/Arquivos/metanalise/
+ProjetosCode/Arquivos/granges_hg38/
+ProjetosCode/Arquivos/overlap/
+ProjetosCode/Arquivos/hotspots/
+ProjetosCode/Arquivos/network/
+ProjetosCode/Arquivos/regulatory_universe.*
+ProjetosCode/Arquivos/annotation/
+ProjetosCode/Figuras/metanalise/
+ProjetosCode/Figuras/annotation/
+ProjetosCode/Dados/Metadata/occupancy_matrix.csv
+ProjetosCode/Figuras/network/
+ProjetosCode/Figuras/overlap/

@@ -569,6 +569,26 @@ in-place; apenas lidos.
   cada grupo processado e já precisou de backup manual entre rodadas. Novo
   helper `extract_sample_metrics()` centraliza a extração (reusado por
   `run_module_06()`).
+- **2026-07-18** — **Metanálise WT concluída (XPC como referência).** Peak
+  calling WT (narrow, MACS3/WSL) das 14 amostras: STAT1/STAT2/IRF9 (UN+IFNα2h) +
+  ELK1 (com input ENCODE). **Achado biológico de validação**: STAT1/STAT2/IRF9
+  têm pouquíssimos picos em untreated (2-67) e dezenas de milhares em IFNα2h
+  (40-62k) — salto que confirma a ativação do complexo ISGF3 por interferon
+  (timepoints UN+IFNα2h acertados). Rodados os Módulos 13-18 (universo
+  regulatório, matriz de ocupação, Jaccard, interseção das 5 [0 regiões ao nível
+  de coordenada exata — esperado dada a diversidade], hotspots anotados, rede
+  bipartida Proteína→Região→Gene). **Camada XPC-âncora (nível de genes)**:
+  XPC∩combinações, em 2 versões — (a) *nearest-gene*: STAT1/STAT2 saturam
+  (~19-20k genes, quase o genoma, por terem 40-62k picos); (b) *promotor ±3kb*
+  (recomendada): reduz a saturação mas STAT1/STAT2 seguem amplos (~14k).
+  **Resultado interpretável** (limitado pelos conjuntos específicos): **XPC ∩
+  eixo interferon (STAT1∩STAT2∩IRF9) = 8 genes** (promotor), incluindo **RIGI
+  (DDX58/RIG-I)** e **IFI44L** — ISGs canônicos que validam o achado. XPC∩ELK1=0.
+  Saídas em `Arquivos/metanalise/` (CSVs ambas versões), `Figuras/metanalise/`
+  (Venn/UpSet ambas versões), `Arquivos/{overlap,hotspots,network}/`,
+  `granges_hg38/`. **Ressalva**: amplitude de STAT1/STAT2 é parte biologia real
+  (STATs induzidos ligam massivamente às 2h), parte possível sobre-sensibilidade
+  do peak calling — interseções confiáveis são as com IRF9/ELK1/XPC.
 
 ## 5. Dependências
 
