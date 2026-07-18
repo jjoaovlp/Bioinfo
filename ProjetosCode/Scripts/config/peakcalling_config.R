@@ -13,7 +13,11 @@ PEAKCALLING_CONFIG <- list(
   XPC = list(peak_type = "broad", qvalue = 0.01, broad_cutoff = 0.1),
   ELK1 = list(peak_type = "narrow", qvalue = 0.01),
   STAT1 = list(peak_type = "narrow", qvalue = 0.01),
-  STAT2 = list(peak_type = "narrow", qvalue = 0.01)
+  STAT2 = list(peak_type = "narrow", qvalue = 0.01),
+  ## IRF9: adicionada como 5a proteina da metanalise WT (re-escopo 2026-07-18,
+  ## CLAUDE.md S4). Fator de transcricao (componente do complexo ISGF3 com
+  ## STAT1/STAT2) -> picos narrow, mesmos parametros dos demais TFs.
+  IRF9 = list(peak_type = "narrow", qvalue = 0.01)
 )
 
 ## Genoma efetivo para MACS3 --gsize. "hs" = tamanho efetivo padrao do
