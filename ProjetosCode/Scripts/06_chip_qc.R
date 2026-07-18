@@ -46,6 +46,44 @@ CHIPQC_ARQ_DIR <- file.path(PROJECT_DIRS$arquivos, "chip_qc")
 
 ## --- QC por amostra ------------------------------------------------------------
 
+## Rotulos manuais para amostras sem entrada no metadata padronizado (ex.
+## input ENCODE do ELK1, que nao tem GSM proprio -- ver CLAUDE.md S4 2026-07-18).
+MANUAL_SAMPLE_LABELS <- c(
+  ELK1input_ENCFF002ECM = "ELK1 Input (ENCODE, rep1)",
+  ELK1input_ENCFF002ECL = "ELK1 Input (ENCODE, rep2)",
+  ELK1input_pooled       = "ELK1 Input (ENCODE, pooled)"
+)
+
+#' Resolve um rotulo legivel "Proteina Genotipo" (ex. "XPC WT") para um
+#' sample_id (GSM), lendo Protein/Genotype de chipseq_metadata.csv e, se nao
+#' encontrado la (amostras fora do escopo original, ex. IRF9/H3K4me3 -- ver
+#' CLAUDE.md S4 2026-07-18), de chipseq_metadata_filtered_out.csv. Amostras
+#' sinteticas (sem GSM, ex. inputs ENCODE combinados) usam
+#' MANUAL_SAMPLE_LABELS. Se nada for encontrado, devolve NA (chamador decide
+#' o fallback).
+sample_label <- function(sample_id) {
+  if (sample_id %in% names(MANUAL_SAMPLE_LABELS)) {
+    return(unname(MANUAL_SAMPLE_LABELS[sample_id]))
+  }
+  for (f in c("chipseq_metadata.csv", "chipseq_metadata_filtered_out.csv")) {
+    path <- file.path(PROJECT_DIRS$metadata, f)
+    if (!file.exists(path)) next
+    meta <- read.csv(path, stringsAsFactors = FALSE)
+    row <- meta[meta$GSM == sample_id, ]
+    if (nrow(row) > 0) {
+      return(trimws(paste(row$Protein[1], row$Genotype[1])))
+    }
+  }
+  NA_character_
+}
+
+#' Monta o titulo de figura "<sample_id> (<rotulo>)" ou so "<sample_id>" se
+#' o rotulo nao for encontrado (nunca falha por amostra desconhecida).
+sample_title <- function(sample_id) {
+  label <- sample_label(sample_id)
+  if (is.na(label) || !nzchar(label)) sample_id else sprintf("%s (%s)", sample_id, label)
+}
+
 #' Roda ChIPQCsample() para um BAM. `peaks` e `blacklist_gr` sao opcionais
 #' (NULL antes do Modulo 07 rodar) -- sem peaks, FRiP fica NA; sem
 #' blacklist, ChIPQC nao filtra regioes conhecidas de artefato na propria
@@ -65,13 +103,14 @@ save_sample_qc_plots <- function(qc_sample, sample_id, output_dir = CHIPQC_FIG_D
   ensure_dir(output_dir)
   install_if_missing("ggplot2")
 
+  title_suffix <- sample_title(sample_id)
   cc_plot <- plotCC(qc_sample) +
-    ggplot2::ggtitle(sprintf("Fragment size / cross-coverage -- %s", sample_id))
+    ggplot2::ggtitle(sprintf("Fragment size / cross-coverage -- %s", title_suffix))
   ggplot2::ggsave(file.path(output_dir, sprintf("%s_fragmentsize.png", sample_id)),
                    cc_plot, width = 7, height = 5, dpi = 300)
 
   ssd_plot <- plotSSD(qc_sample) +
-    ggplot2::ggtitle(sprintf("Fingerprint (SSD) -- %s", sample_id))
+    ggplot2::ggtitle(sprintf("Fingerprint (SSD) -- %s", title_suffix))
   ggplot2::ggsave(file.path(output_dir, sprintf("%s_fingerprint.png", sample_id)),
                    ssd_plot, width = 7, height = 5, dpi = 300)
 

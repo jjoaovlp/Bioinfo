@@ -548,6 +548,15 @@ in-place; apenas lidos.
   bowtie2 do Linux lê `.fastq.gz` direto (sem o bug do bowtie2 nativo). Script
   `scratchpad/align_new_wsl.sh` (bowtie2 -p4 | samtools sort). **Qualquer
   alinhamento futuro deve usar o WSL enquanto o SAC estiver em enforcement.**
+- **2026-07-18** — **Títulos das figuras de ChIP-QC agora incluem o nome
+  legível da amostra.** `06_chip_qc.R`: novas `sample_label()`/`sample_title()`
+  resolvem "Proteína Genótipo" (ex. "XPC WT") a partir de `Protein`/`Genotype`
+  em `chipseq_metadata.csv` (com fallback para `chipseq_metadata_filtered_out.csv`
+  — cobre IRF9/H3K4me3) por `sample_id` (GSM); amostras sintéticas sem GSM
+  (inputs ENCODE combinados) usam `MANUAL_SAMPLE_LABELS`. `save_sample_qc_plots()`
+  agora titula os gráficos de fragment size/cross-coverage e fingerprint/SSD
+  como `"GSM... (XPC WT)"` em vez de só `"GSM..."`. Vale só para figuras
+  regeneradas a partir de agora (não retroativo às já geradas).
 
 ## 5. Dependências
 
