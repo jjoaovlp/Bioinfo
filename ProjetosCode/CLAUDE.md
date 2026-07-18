@@ -557,6 +557,18 @@ in-place; apenas lidos.
   agora titula os gráficos de fragment size/cross-coverage e fingerprint/SSD
   como `"GSM... (XPC WT)"` em vez de só `"GSM..."`. Vale só para figuras
   regeneradas a partir de agora (não retroativo às já geradas).
+- **2026-07-18** — **Cache do objeto ChIPQCsample (RDS) + CSV de métricas por
+  amostra.** `ChIPQCsample()` é a etapa cara do Módulo 06 (minutos a horas por
+  amostra) e o objeto `qc` não era salvo — trocar o título/estilo de uma figura
+  já processada exigia recomputar tudo. Agora `run_chipqc_sample()`
+  (`06_chip_qc.R`) salva automaticamente: (1) o objeto em
+  `Arquivos/chip_qc/qc_objects/<sample_id>_chipqc.rds` (permite re-plotar/
+  re-extrair sem recomputar), e (2) as métricas (frip/ssd/fragment_length) em
+  CSV próprio por amostra em `Arquivos/chip_qc/metrics/<sample_id>_metrics.csv`
+  — elimina a dependência do `chipqc_metrics.csv` em lote, que é sobrescrito a
+  cada grupo processado e já precisou de backup manual entre rodadas. Novo
+  helper `extract_sample_metrics()` centraliza a extração (reusado por
+  `run_module_06()`).
 
 ## 5. Dependências
 

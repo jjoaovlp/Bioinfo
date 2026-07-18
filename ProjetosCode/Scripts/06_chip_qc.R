@@ -84,17 +84,50 @@ sample_title <- function(sample_id) {
   if (is.na(label) || !nzchar(label)) sample_id else sprintf("%s (%s)", sample_id, label)
 }
 
+#' Extrai frip/ssd/fragment_length de um objeto ChIPQCsample (mesmos campos
+#' salvos em chipqc_metrics.csv por run_module_06()). Reaproveitada por
+#' run_chipqc_sample() para o CSV individual e por quem monta o CSV em lote.
+extract_sample_metrics <- function(qc, sample_id) {
+  data.frame(
+    sample_id = sample_id,
+    frip = tryCatch(frip(qc), error = function(e) NA_real_),
+    ssd = tryCatch(ChIPQC::QCmetrics(qc)[["SSD"]], error = function(e) NA_real_),
+    fragment_length = tryCatch(fragmentlength(qc), error = function(e) NA_real_),
+    stringsAsFactors = FALSE
+  )
+}
+
 #' Roda ChIPQCsample() para um BAM. `peaks` e `blacklist_gr` sao opcionais
 #' (NULL antes do Modulo 07 rodar) -- sem peaks, FRiP fica NA; sem
 #' blacklist, ChIPQC nao filtra regioes conhecidas de artefato na propria
 #' analise de QC (o BAM ja deveria ter sido filtrado no Modulo 05).
+#'
+#' Salva automaticamente (1) o objeto ChIPQCsample como RDS em
+#' `Arquivos/chip_qc/qc_objects/<sample_id>_chipqc.rds` -- ChIPQCsample() e'
+#' a etapa cara (minutos a horas por amostra); ter o objeto em disco permite
+#' re-plotar/re-extrair metricas depois (ex. mudanca de titulo/estilo) sem
+#' recomputar -- e (2) as metricas numericas em CSV PROPRIO por amostra em
+#' `Arquivos/chip_qc/metrics/<sample_id>_metrics.csv`, para nao depender do
+#' `chipqc_metrics.csv` em lote (que e' sobrescrito a cada grupo processado
+#' -- ja precisou de backup manual entre rodadas do XPC e do restante).
 run_chipqc_sample <- function(bam_file, sample_id, peaks = NULL, blacklist_gr = NULL) {
   validate_file_exists(bam_file, "BAM filtrado")
   log_message("06_chip_qc", sprintf("Rodando ChIPQCsample para '%s'.", sample_id))
-  ChIPQCsample(
+  qc <- ChIPQCsample(
     reads = bam_file, peaks = peaks, annotation = NULL,
     blacklist = blacklist_gr, runCrossCor = TRUE, verboseT = FALSE
   )
+
+  qc_dir <- file.path(CHIPQC_ARQ_DIR, "qc_objects")
+  ensure_dir(qc_dir)
+  saveRDS(qc, file.path(qc_dir, sprintf("%s_chipqc.rds", sample_id)))
+
+  metrics_dir <- file.path(CHIPQC_ARQ_DIR, "metrics")
+  ensure_dir(metrics_dir)
+  write.csv(extract_sample_metrics(qc, sample_id),
+            file.path(metrics_dir, sprintf("%s_metrics.csv", sample_id)), row.names = FALSE)
+
+  qc
 }
 
 #' Salva as figuras de fragment size (plotCC) e fingerprint/SSD (plotSSD)
@@ -213,14 +246,7 @@ run_module_06 <- function(samples_df, blacklist_gr = NULL, genome_build = "hg38"
   names(qc_samples) <- samples_df$sample_id
 
   metrics_df <- do.call(rbind, lapply(seq_along(qc_samples), function(i) {
-    qc <- qc_samples[[i]]
-    data.frame(
-      sample_id = names(qc_samples)[i],
-      frip = tryCatch(frip(qc), error = function(e) NA_real_),
-      ssd = tryCatch(ChIPQC::QCmetrics(qc)[["SSD"]], error = function(e) NA_real_),
-      fragment_length = tryCatch(fragmentlength(qc), error = function(e) NA_real_),
-      stringsAsFactors = FALSE
-    )
+    extract_sample_metrics(qc_samples[[i]], names(qc_samples)[i])
   }))
   out_file <- file.path(CHIPQC_ARQ_DIR, "chipqc_metrics.csv")
   write.csv(metrics_df, out_file, row.names = FALSE)
