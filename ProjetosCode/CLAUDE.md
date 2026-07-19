@@ -628,6 +628,20 @@ in-place; apenas lidos.
   decisão do usuário) — desta vez `run_chipqc_batch()` salva o
   `ChIPQCexperiment` como `chipqc_experiment.rds`, então nunca mais precisa
   recomputar para replotar.
+- **2026-07-19** — **Rede bipartida legível dos hotspots de ocupação máxima.**
+  A rede completa do Módulo 18 (`Figuras/network/bipartite_network.png`) usa
+  todos os hotspots com `occupancy_score>=2` (46.477 regiões — o threshold do
+  Módulo 17 é baixo demais para uma rede legível, quase toda região tem 2
+  proteínas por acaso) e continua um "hairball" mesmo após o fix do fundo
+  transparente. Investigado: só **9 regiões** têm `occupancy_score` máximo (=4,
+  ocupadas por 4 proteínas simultaneamente) — geradas como
+  `Figuras/network/bipartite_network_top_hotspots.png`
+  (`scratchpad/run_bipartite_top_hotspots.R`), totalmente legível. **Achado de
+  consistência**: 2 desses 9 genes hotspot (PHACTR4, IFI44L) são exatamente 2
+  dos 8 genes-núcleo já identificados na camada XPC-âncora (seção 5 do
+  `RESUMO_METANALISE.md`) — os dois métodos independentes (nível de região via
+  Módulo 17, nível de gene via ChIPseeker) convergem. A figura também mostra
+  visualmente que ELK1 nunca compartilha hotspot com XPC (confirma Jaccard=0).
 
 ## 5. Dependências
 

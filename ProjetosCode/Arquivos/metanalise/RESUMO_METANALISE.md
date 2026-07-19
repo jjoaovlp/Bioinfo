@@ -109,10 +109,14 @@ caem exatamente na via de resposta a interferon — não é um artefato do méto
 | `correlation_heatmap_genes.png` | Correlação de Pearson dos perfis binários gene×proteína |
 | `jaccard_heatmap_valores.png` | Jaccard par-a-par com valores numéricos (nível de região) |
 
-**Nota sobre `Figuras/network/bipartite_network.png`** (Módulo 18, gerada antes destas): usa
-**todos** os hotspots (score ≥2 proteínas) e todos os genes — por volume vira um "hairball"
-ilegível. Não é um bug de dados, é o preço de plotar milhares de nós; para uma visão legível,
-usar `rede_focada_xpc.png` (subconjunto específico e pequeno).
+| `bipartite_network_top_hotspots.png` | Rede proteína→gene só das 9 regiões com occupancy_score MÁXIMO (=4, ocupadas por 4 proteínas simultaneamente) — inclui PHACTR4 e IFI44L, os mesmos 2 genes-núcleo já vistos na seção 5 |
+
+**Nota sobre `Figuras/network/bipartite_network.png`** (Módulo 18, saída padrão): usa **todos**
+os hotspots (46.477 regiões com score≥2 — quase toda região tem 2 proteínas por acaso) e todos os
+genes — por volume vira um "hairball" ilegível. Não é um bug de dados, é o preço de plotar
+dezenas de milhares de nós; para uma visão legível, usar `rede_focada_xpc.png` (genes-núcleo
+XPC-âncora) ou `bipartite_network_top_hotspots.png` (hotspots de ocupação máxima, sem viés de
+proteína de referência).
 
 ## 7. Ressalva metodológica
 
