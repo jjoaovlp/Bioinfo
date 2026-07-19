@@ -131,21 +131,44 @@ run_chipqc_sample <- function(bam_file, sample_id, peaks = NULL, blacklist_gr = 
 }
 
 #' Salva as figuras de fragment size (plotCC) e fingerprint/SSD (plotSSD)
-#' de uma amostra em Figuras/chip_qc/, em PNG a 300 dpi.
+#' de uma amostra em Figuras/chip_qc/, em PNG a 300 dpi. Melhoradas
+#' (2026-07-18): o fragment size marca com linha tracejada o comprimento de
+#' fragmento estimado (pico da cross-correlation) e anota o valor; o
+#' fingerprint (SSD) ganha subtitulo com o valor e interpretacao (plotSSD do
+#' ChIPQC so plota um ponto -- o numero e' o que importa). Ambos com tema
+#' limpo (theme_minimal) e o nome legivel da amostra no titulo.
 save_sample_qc_plots <- function(qc_sample, sample_id, output_dir = CHIPQC_FIG_DIR) {
   ensure_dir(output_dir)
   install_if_missing("ggplot2")
 
   title_suffix <- sample_title(sample_id)
-  cc_plot <- plotCC(qc_sample) +
-    ggplot2::ggtitle(sprintf("Fragment size / cross-coverage -- %s", title_suffix))
-  ggplot2::ggsave(file.path(output_dir, sprintf("%s_fragmentsize.png", sample_id)),
-                   cc_plot, width = 7, height = 5, dpi = 300)
+  frag_len <- tryCatch(fragmentlength(qc_sample), error = function(e) NA_real_)
+  ssd_val  <- tryCatch(ChIPQC::QCmetrics(qc_sample)[["SSD"]], error = function(e) NA_real_)
 
+  ## --- fragment size / cross-coverage: marca o fragment length estimado ---
+  cc_plot <- plotCC(qc_sample) +
+    ggplot2::labs(title = sprintf("Fragment size / cross-coverage -- %s", title_suffix),
+                  subtitle = if (!is.na(frag_len))
+                    sprintf("Comprimento de fragmento estimado: %d bp (pico da cross-correlation)", round(frag_len)) else NULL,
+                  x = "Deslocamento (bp)", y = "Cross-coverage score") +
+    ggplot2::theme_minimal(base_size = 12)
+  if (!is.na(frag_len)) {
+    cc_plot <- cc_plot +
+      ggplot2::geom_vline(xintercept = frag_len, linetype = "dashed", color = "#D7263D", linewidth = 0.7) +
+      ggplot2::annotate("text", x = frag_len, y = Inf, label = sprintf(" %d bp", round(frag_len)),
+                        hjust = 0, vjust = 1.4, color = "#D7263D", size = 3.6)
+  }
+  ggplot2::ggsave(file.path(output_dir, sprintf("%s_fragmentsize.png", sample_id)),
+                   cc_plot, width = 7.5, height = 5, dpi = 300)
+
+  ## --- fingerprint (SSD): destaca o valor numerico ---
   ssd_plot <- plotSSD(qc_sample) +
-    ggplot2::ggtitle(sprintf("Fingerprint (SSD) -- %s", title_suffix))
+    ggplot2::labs(title = sprintf("Fingerprint (SSD) -- %s", title_suffix),
+                  subtitle = if (!is.na(ssd_val))
+                    sprintf("SSD = %.3f  (maior = mais estrutura/enriquecimento do sinal de ChIP)", ssd_val) else NULL) +
+    ggplot2::theme_minimal(base_size = 12)
   ggplot2::ggsave(file.path(output_dir, sprintf("%s_fingerprint.png", sample_id)),
-                   ssd_plot, width = 7, height = 5, dpi = 300)
+                   ssd_plot, width = 7.5, height = 5, dpi = 300)
 
   log_message("06_chip_qc", sprintf("Figuras de QC salvas para '%s' em '%s'.", sample_id, output_dir))
   invisible(TRUE)

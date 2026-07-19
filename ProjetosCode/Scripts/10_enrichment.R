@@ -44,9 +44,19 @@ ENRICHMENT_FIG_DIR <- file.path(PROJECT_DIRS$figuras, "enrichment")
 
 #' Monta a tabela TERM2GENE (gene set -> ENTREZID) dos conjuntos Hallmark
 #' (categoria "H" do MSigDB) para humano, usada por clusterProfiler::enricher().
+#'
+#' A coluna do Entrez ID mudou de nome entre versoes do msigdbr
+#' (`entrez_gene` nas versoes antigas, `ncbi_gene` a partir da 7.5.1) --
+#' resolve dinamicamente para nao quebrar com upgrade do pacote.
 get_hallmark_term2gene <- function() {
   hallmark <- msigdbr(species = "Homo sapiens", collection = "H")
-  unique(hallmark[, c("gs_name", "entrez_gene")])
+  entrez_col <- intersect(c("entrez_gene", "ncbi_gene"), names(hallmark))[1]
+  if (is.na(entrez_col)) {
+    stop("Validacao falhou: coluna de Entrez ID nao encontrada no msigdbr (esperava 'entrez_gene' ou 'ncbi_gene'). Execucao interrompida.", call. = FALSE)
+  }
+  out <- unique(hallmark[, c("gs_name", entrez_col)])
+  names(out) <- c("gs_name", "entrez_gene")
+  out
 }
 
 ## --- enriquecimentos ---------------------------------------------------------------

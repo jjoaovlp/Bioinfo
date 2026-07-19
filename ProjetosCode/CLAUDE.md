@@ -589,6 +589,45 @@ in-place; apenas lidos.
   `granges_hg38/`. **Ressalva**: amplitude de STAT1/STAT2 é parte biologia real
   (STATs induzidos ligam massivamente às 2h), parte possível sobre-sensibilidade
   do peak calling — interseções confiáveis são as com IRF9/ELK1/XPC.
+- **2026-07-18/19** — **Extras da metanálise + enriquecimento + correções de
+  visualização** (pedidos do usuário). **Enriquecimento funcional** dos 8
+  genes-núcleo (`Scripts/10_enrichment.R`, GO/KEGG/Reactome/Hallmark): só
+  Reactome achou termo significativo — **"Modulation of host responses by
+  IFN-stimulated genes"** (R-HSA-9909505, p.adjust=0.022, genes RIGI/IFI44L,
+  fold enrichment 332×) — validação estatística independente de que o núcleo
+  XPC∩interferon está na via biológica esperada. **Bug real corrigido**: o
+  `msigdbr` renomeou a coluna do Entrez ID (`entrez_gene`→`ncbi_gene` a partir
+  da 7.5.1), quebrando `get_hallmark_term2gene()`; agora resolve o nome da
+  coluna dinamicamente. **Tabela de interseções exclusivas** (estrutura do
+  UpSet, cada gene em uma só combinação) salva em
+  `metanalise_interseccoes_completas_promoter.csv`. **Rede focada legível**
+  (`rede_focada_xpc.png`, só os 8 genes-núcleo + XPC∩IRF9/ELK1) substituindo a
+  necessidade de usar a rede completa do Módulo 18 (que com todos os hotspots
+  vira um "hairball" ilegível por volume — não é bug, é o preço de plotar
+  milhares de nós). **Bug real corrigido**: `theme_void()` deixa o fundo do
+  painel transparente (`element_blank()`), que aparece preto em visualizadores
+  sem fundo próprio, tornando rótulos de texto preto invisíveis — corrigido com
+  fundo branco explícito no tema + `ggsave(..., bg="white")`, aplicado também
+  em `18_bipartite_network.R` (`build_network_graph`/rede completa). **Novos**:
+  correlation heatmap dos perfis de genes-alvo entre proteínas
+  (`correlation_heatmap_genes.png`) e Jaccard com valores numéricos anotados
+  (`jaccard_heatmap_valores.png`). **Figuras de ChIP-QC melhoradas**
+  (`save_sample_qc_plots()`): fragment size agora marca o comprimento de
+  fragmento estimado com linha tracejada + anotação; fingerprint ganhou
+  subtítulo com o valor de SSD e interpretação; ambas com `theme_minimal()`.
+  Regeneradas via cache RDS (sem recomputar) para as 14 amostras WT.
+  **`RESUMO_METANALISE.md`** (`Arquivos/metanalise/`, versionado
+  explicitamente mesmo com a pasta no `.gitignore` — é conteúdo escrito à mão,
+  não regenerável por script) consolida todos os achados em um único
+  documento: genes-alvo por proteína, Jaccard, interseções (cumulativas e
+  exclusivas), os 8 genes-núcleo, enriquecimento, e o que cada figura mostra.
+  **Pendência**: `Figuras/chip_qc/correlation_heatmap.png` e `pca.png` do
+  batch original de XPC+H3K4me3 (19 amostras, rodado em 2026-07-17) estavam
+  **em branco** (a execução antecedeu a correção do bug de `theme_void()`
+  transparente); relançado em background (`run_xpc_chipqc_batch.R`, ~10h,
+  decisão do usuário) — desta vez `run_chipqc_batch()` salva o
+  `ChIPQCexperiment` como `chipqc_experiment.rds`, então nunca mais precisa
+  recomputar para replotar.
 
 ## 5. Dependências
 

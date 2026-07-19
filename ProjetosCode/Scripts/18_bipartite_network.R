@@ -125,13 +125,23 @@ run_module_18 <- function(occupancy_csv, hotspots_csv) {
 
   ensure_dir(NETWORK_FIG_DIR)
   install_if_missing("ggplot2")
+  ## theme_void() deixa o fundo do painel transparente (element_blank()) --
+  ## em visualizadores sem fundo branco proprio isso aparece preto e torna
+  ## os rotulos illegiveis (texto preto sobre "preto"). Fundo branco
+  ## explicito no tema + bg="white" no ggsave corrige (bug real encontrado
+  ## 2026-07-18). Com todos os hotspots (score>=2) a rede tende a virar um
+  ## "hairball" ilegivel por volume -- para uma visao legivel de um
+  ## subconjunto especifico, ver a rede focada da metanalise
+  ## (Figuras/metanalise/rede_focada_xpc.png).
   p <- ggraph::ggraph(tidygraph::as_tbl_graph(g), layout = "fr") +
     ggraph::geom_edge_link(alpha = 0.3) +
     ggraph::geom_node_point() +
-    ggraph::geom_node_text(ggplot2::aes(label = name), size = 2, repel = TRUE) +
+    ggraph::geom_node_text(ggplot2::aes(label = name), size = 2, repel = TRUE, color = "black") +
     ggplot2::theme_void() +
-    ggplot2::ggtitle("Rede bipartida: Proteina -> Regiao -> Gene")
-  ggplot2::ggsave(file.path(NETWORK_FIG_DIR, "bipartite_network.png"), p, width = 10, height = 10, dpi = 300)
+    ggplot2::ggtitle("Rede bipartida: Proteina -> Regiao -> Gene") +
+    ggplot2::theme(plot.background = ggplot2::element_rect(fill = "white", color = NA),
+                   panel.background = ggplot2::element_rect(fill = "white", color = NA))
+  ggplot2::ggsave(file.path(NETWORK_FIG_DIR, "bipartite_network.png"), p, width = 10, height = 10, dpi = 300, bg = "white")
 
   log_message("18_bipartite_network", sprintf(
     "Rede com %d no(s) e %d aresta(s) salva em '%s'.",
