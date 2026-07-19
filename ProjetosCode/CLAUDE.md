@@ -642,6 +642,21 @@ in-place; apenas lidos.
   `RESUMO_METANALISE.md`) — os dois métodos independentes (nível de região via
   Módulo 17, nível de gene via ChIPseeker) convergem. A figura também mostra
   visualmente que ELK1 nunca compartilha hotspot com XPC (confirma Jaccard=0).
+- **2026-07-19** — **Causa raiz real do correlation heatmap/PCA vazios do
+  ChIP-QC.** Não era bug de renderização (o fix de `theme_void()`/fundo
+  transparente do dia anterior era real mas não era a causa deste problema).
+  `plotCorHeatmap()`/`plotPrincomp()` do `ChIPQC` **retornam `NULL` com a
+  mensagem "No peaks to plot."** quando a `ChIPQCexperiment` não tem picos —
+  e `run_xpc_chipqc_batch.R` chamava `ChIPQC()` sem a coluna `Peaks` (desenho
+  original: essa etapa de QC roda antes do peak calling). O batch rodou de
+  verdade (~4h40, mais rápido que a estimativa de 10h) mas produziu PNGs
+  vazios porque não havia dado nenhum para plotar — confirmado inspecionando
+  a classe do retorno (`NULL`) diretamente no R. **Decisão do usuário**: com
+  o peak calling do XPC (16 amostras) já pronto, rodar peak calling rápido
+  (broad, `--nolambda`) também para as 3 amostras H3K4me3 (nunca usadas como
+  alvo científico, só input substituto do XPC-WT — nova entrada
+  `H3K4me3` em `PEAKCALLING_CONFIG`) e relançar o ChIPQC em lote das 19 agora
+  COM picos para todas (`run_h3k4me3_peaks_and_chipqc_batch.R`).
 
 ## 5. Dependências
 
