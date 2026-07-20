@@ -658,6 +658,14 @@ in-place; apenas lidos.
   `H3K4me3` em `PEAKCALLING_CONFIG`) e relançar o ChIPQC em lote das 19 agora
   COM picos para todas (`run_h3k4me3_peaks_and_chipqc_batch.R`).
 
+  **Resultado**: com picos para as 19 amostras, `correlation_heatmap.png` e
+  `pca.png` renderizaram conteúdo real pela primeira vez (~20min, bem mais
+  rápido que os batches sem picos). Achados: réplicas XPC-WT têm correlação
+  quase nula entre si (blocos isolados na diagonal — condizente com o
+  consenso WT pequeno e específico, 1.577 regiões); XPC-KO e H3K4me3 mostram
+  mais correlação cruzada entre si. No PCA, GSM6600715 (maior amostra do
+  lote, 111M reads) é um outlier isolado no PC1 (62% da variância).
+
 ## 5. Dependências
 
 ### 5.1 Pacotes do R (via BiocManager/CRAN)
