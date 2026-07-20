@@ -642,6 +642,20 @@ in-place; apenas lidos.
   `RESUMO_METANALISE.md`) — os dois métodos independentes (nível de região via
   Módulo 17, nível de gene via ChIPseeker) convergem. A figura também mostra
   visualmente que ELK1 nunca compartilha hotspot com XPC (confirma Jaccard=0).
+  **Usuário reportou que `bipartite_network.png` (saída padrão do Módulo 18)
+  continuava ilegível** ("tudo preto, sem fundo") mesmo após o fix do
+  `theme_void()`. Investigado a fundo: o fundo já era branco de fato — o
+  efeito "tudo preto" é visual, causado pela densidade de ~46.477 nós/arestas
+  sobrepostos (mesmo filtrando para score≥3 ainda sobram 1.342 genes únicos).
+  **Confirmado: é puramente um problema de escala, não de estilo/renderização**
+  — nenhum PNG estático consegue representar essa quantidade de nós de forma
+  legível. **Ação**: `Figuras/network/bipartite_network.png` foi
+  **sobrescrito com o conteúdo de `bipartite_network_top_hotspots.png`**
+  (as 9 regiões de ocupação máxima) — agora ambos os nomes de arquivo mostram
+  a mesma versão legível. A rede completa (46 mil+ nós) permanece disponível
+  em `Arquivos/network/bipartite_network.graphml` para exploração interativa
+  em Cytoscape/Gephi, que é a ferramenta correta para essa escala — não um
+  PNG. `RESUMO_METANALISE.md` atualizado para refletir isso.
 - **2026-07-19** — **Causa raiz real do correlation heatmap/PCA vazios do
   ChIP-QC.** Não era bug de renderização (o fix de `theme_void()`/fundo
   transparente do dia anterior era real mas não era a causa deste problema).

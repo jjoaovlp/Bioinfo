@@ -111,12 +111,18 @@ caem exatamente na via de resposta a interferon — não é um artefato do méto
 
 | `bipartite_network_top_hotspots.png` | Rede proteína→gene só das 9 regiões com occupancy_score MÁXIMO (=4, ocupadas por 4 proteínas simultaneamente) — inclui PHACTR4 e IFI44L, os mesmos 2 genes-núcleo já vistos na seção 5 |
 
-**Nota sobre `Figuras/network/bipartite_network.png`** (Módulo 18, saída padrão): usa **todos**
-os hotspots (46.477 regiões com score≥2 — quase toda região tem 2 proteínas por acaso) e todos os
-genes — por volume vira um "hairball" ilegível. Não é um bug de dados, é o preço de plotar
-dezenas de milhares de nós; para uma visão legível, usar `rede_focada_xpc.png` (genes-núcleo
-XPC-âncora) ou `bipartite_network_top_hotspots.png` (hotspots de ocupação máxima, sem viés de
-proteína de referência).
+**Nota sobre `Figuras/network/bipartite_network.png`** (2026-07-19, atualizado): o arquivo
+gerado pelo Módulo 18 por padrão usa **todos** os hotspots (46.477 regiões com score≥2 — quase
+toda região tem 2 proteínas por acaso) e vira um "hairball" ilegível — não é um bug de
+estilo/fundo, é o preço de plotar dezenas de milhares de nós num PNG estático (confirmado:
+mesmo restringindo a score≥3 ainda sobram 1.342 genes únicos, ainda ilegível). Por isso este
+arquivo foi **substituído pelo conteúdo de `bipartite_network_top_hotspots.png`** (as 9 regiões
+de ocupação máxima) — as duas imagens agora são idênticas e ambas legíveis. Para explorar a
+rede **completa** (todos os 46 mil+ hotspots), use `Arquivos/network/bipartite_network.graphml`
+em uma ferramenta de rede interativa (Cytoscape/Gephi) — nenhuma imagem estática consegue
+representar essa escala de forma legível. Alternativas legíveis já prontas:
+`rede_focada_xpc.png` (genes-núcleo XPC-âncora) ou `bipartite_network_top_hotspots.png`
+(hotspots de ocupação máxima, sem viés de proteína de referência).
 
 ## 7. Ressalva metodológica
 
