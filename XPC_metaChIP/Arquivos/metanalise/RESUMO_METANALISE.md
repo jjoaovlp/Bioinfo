@@ -204,6 +204,14 @@ STAT1/STAT2/IRF9 **UN** (pré-interferon) e ELK1 (ENCODE, sempre "none"). Ver
 `Figuras/metanalise/jaccard_heatmap_untreated.png`,
 `venn_untreated_{nearest,promotor}.png`, `Arquivos/metanalise/{jaccard,gene_sets}_untreated.csv`.
 
+**ELK1 incluído diretamente no Venn** (pedido do usuário): além do Venn de 4 conjuntos
+(XPC+eixo interferon), `venn_untreated_{nearest,promotor}_5proteinas.png` mostra as
+**5 proteínas juntas** (`ggVennDiagram` suporta 5 conjuntos com layout poligonal, ainda
+legível). XPC∩ELK1 = 7 genes (nearest) / 0 (promotor) — os mesmos 7 genes já vistos na
+metanálise principal (ELK1 não varia por timepoint, então seu conjunto de genes é
+idêntico entre baseline e WT-completo). Núcleo das 5 juntas = 0 genes em ambas as
+versões.
+
 | Proteína | Amostras | N regiões consenso | Genes (promotor) |
 |---|---|---|---|
 | XPC | 0h_post_UV (4) | 1461 | 252 |
