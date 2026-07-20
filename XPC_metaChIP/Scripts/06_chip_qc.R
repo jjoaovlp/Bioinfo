@@ -116,17 +116,41 @@ sample_label <- function(sample_id) {
   NA_character_
 }
 
-#' Monta o titulo de figura "<sample_id> (<rotulo>; Ac: <anticorpo>)" -- inclui
-#' o anticorpo usado no ChIP (pedido do usuario 2026-07-19, para todas as
-#' figuras que identificam amostra por GSM), com fallback gracioso quando
-#' rotulo ou anticorpo nao sao encontrados (nunca falha por amostra
-#' desconhecida).
+#' Resolve o tratamento da amostra (ex. "0h_post_UV", "IFNa_2h", "UN") a
+#' partir da coluna Treatment do metadata, ou "input" quando a amostra e' um
+#' controle de input sem anticorpo de ChIP (via sample_antibody() == "nenhum
+#' (input)"). Amostras sinteticas com rotulo manual (MANUAL_SAMPLE_LABELS --
+#' o texto ja diz "Input") devolvem NA para nao duplicar a informacao no
+#' titulo. Se nada for encontrado, devolve NA.
+sample_treatment <- function(sample_id) {
+  if (sample_id %in% names(MANUAL_SAMPLE_LABELS)) return(NA_character_)
+  ab <- sample_antibody(sample_id)
+  if (!is.na(ab) && identical(ab, "nenhum (input)")) return("input")
+  for (f in c("chipseq_metadata.csv", "chipseq_metadata_filtered_out.csv")) {
+    path <- file.path(PROJECT_DIRS$metadata, f)
+    if (!file.exists(path)) next
+    meta <- read.csv(path, stringsAsFactors = FALSE)
+    row <- meta[meta$GSM == sample_id, ]
+    if (nrow(row) > 0 && !is.na(row$Treatment[1]) && nzchar(trimws(row$Treatment[1]))) {
+      return(trimws(row$Treatment[1]))
+    }
+  }
+  NA_character_
+}
+
+#' Monta o titulo de figura "<sample_id> (<Proteina Genotipo>; <tratamento
+#' ou input>)". O anticorpo (proteina-alvo) ja fica implicito na primeira
+#' parte do rotulo (ex. "XPC WT", "STAT1 WT") -- nao repetido aqui. No lugar
+#' dele, mostra o tratamento da amostra (timepoint/estimulo) ou "input"
+#' quando a amostra e' um controle sem anticorpo de ChIP (pedido do usuario
+#' 2026-07-19). Fallback gracioso quando rotulo ou tratamento nao sao
+#' encontrados (nunca falha por amostra desconhecida).
 sample_title <- function(sample_id) {
   label <- sample_label(sample_id)
-  ab <- sample_antibody(sample_id)
+  treat <- sample_treatment(sample_id)
   parts <- c(
     if (!is.na(label) && nzchar(label)) label,
-    if (!is.na(ab) && nzchar(ab)) sprintf("Ac: %s", ab)
+    if (!is.na(treat) && nzchar(treat)) treat
   )
   if (length(parts) == 0) sample_id else sprintf("%s (%s)", sample_id, paste(parts, collapse = "; "))
 }
@@ -208,14 +232,28 @@ save_sample_qc_plots <- function(qc_sample, sample_id, output_dir = CHIPQC_FIG_D
   ggplot2::ggsave(file.path(output_dir, sprintf("%s_fragmentsize.png", sample_id)),
                    cc_plot, width = 7.5, height = 5, dpi = 300)
 
-  ## --- fingerprint (SSD): destaca o valor numerico ---
-  ssd_plot <- plotSSD(qc_sample) +
-    ggplot2::labs(title = sprintf("Fingerprint (SSD) -- %s", title_suffix),
-                  subtitle = if (!is.na(ssd_val))
-                    sprintf("SSD = %.3f  (maior = mais estrutura/enriquecimento do sinal de ChIP)", ssd_val) else NULL) +
-    ggplot2::theme_minimal(base_size = 12)
+  ## --- fingerprint (SSD): so o valor POS-blacklist ---
+  ## plotSSD() do ChIPQC plota DOIS pontos (Pre_Blacklist=@SSD e
+  ## Post_Blacklist=@SSDBL); como o BAM ja e' filtrado no Modulo 05 eles ficam
+  ## sobrepostos e a legenda com duas categorias so polui. Aqui usa-se apenas o
+  ## SSD pos-blacklist (@SSDBL) num grafico de barra unica com o valor anotado.
+  ssd_bl <- tryCatch(qc_sample@SSDBL, error = function(e) ssd_val)
+  if (is.na(ssd_bl)) ssd_bl <- ssd_val
+  ssd_df <- data.frame(amostra = "Post_Blacklist", SSD = ssd_bl)
+  ssd_plot <- ggplot2::ggplot(ssd_df, ggplot2::aes(x = SSD, y = amostra)) +
+    ggplot2::geom_col(fill = "#1B98E0", width = 0.4) +
+    ggplot2::geom_text(ggplot2::aes(label = sprintf("%.3f", SSD)),
+                       hjust = -0.25, size = 4.6, fontface = "bold") +
+    ggplot2::scale_x_continuous(limits = c(0, max(ssd_bl * 1.25, 0.5)),
+                                expand = ggplot2::expansion(mult = c(0, 0.05))) +
+    ggplot2::labs(title = sprintf("Fingerprint (SSD pos-blacklist) -- %s", title_suffix),
+                  subtitle = "SSD maior = mais estrutura/enriquecimento do sinal de ChIP",
+                  x = "SSD (pos-blacklist)", y = NULL) +
+    ggplot2::theme_minimal(base_size = 12) +
+    ggplot2::theme(axis.text.y = ggplot2::element_blank(),
+                   panel.grid.major.y = ggplot2::element_blank())
   ggplot2::ggsave(file.path(output_dir, sprintf("%s_fingerprint.png", sample_id)),
-                   ssd_plot, width = 7.5, height = 5, dpi = 300)
+                   ssd_plot, width = 7.5, height = 3.2, dpi = 300, bg = "white")
 
   log_message("06_chip_qc", sprintf("Figuras de QC salvas para '%s' em '%s'.", sample_id, output_dir))
   invisible(TRUE)
@@ -235,7 +273,11 @@ save_sample_qc_plots <- function(qc_sample, sample_id, output_dir = CHIPQC_FIG_D
 #' 'seqlevels<-'" assim que o lote de amostras e' processado em paralelo
 #' (visto na pratica com 19 amostras). Rodar serial evita o problema (mais
 #' lento, mas roda no processo principal que ja tem o namespace carregado).
-run_chipqc_batch <- function(samples_df, blacklist_gr = NULL) {
+#' `experiment_name` identifica o RDS salvo (`<experiment_name>.rds`) --
+#' permite rodar mais de um lote (ex. "chipqc_experiment" = so XPC+H3K4me3,
+#' "chipqc_experiment_metanalise" = todas as amostras WT usadas na
+#' metanalise) sem um sobrescrever o cache do outro.
+run_chipqc_batch <- function(samples_df, blacklist_gr = NULL, experiment_name = "chipqc_experiment") {
   install_if_missing("BiocParallel")
   BiocParallel::register(BiocParallel::SerialParam(), default = TRUE)
   sample_sheet <- data.frame(
@@ -254,7 +296,7 @@ run_chipqc_batch <- function(samples_df, blacklist_gr = NULL) {
   ## permite regenerar os graficos de correlacao/PCA (save_batch_qc_plots())
   ## depois sem recomputar tudo.
   ensure_dir(CHIPQC_ARQ_DIR)
-  saveRDS(chipqc_exp, file.path(CHIPQC_ARQ_DIR, "chipqc_experiment.rds"))
+  saveRDS(chipqc_exp, file.path(CHIPQC_ARQ_DIR, sprintf("%s.rds", experiment_name)))
   chipqc_exp
 }
 
@@ -267,7 +309,10 @@ run_chipqc_batch <- function(samples_df, blacklist_gr = NULL) {
 #' EM BRANCO (ggsave captura o dispositivo ggplot vazio, nao o base). Bug
 #' visto na pratica: correlation_heatmap.png e pca.png sairam identicos e
 #' totalmente brancos (2026-07-17).
-save_batch_qc_plots <- function(chipqc_exp, output_dir = CHIPQC_FIG_DIR) {
+#' `name_suffix` evita sobrescrever as figuras de outro lote (ex.
+#' "_metanalise" gera "correlation_heatmap_metanalise.png"/"pca_metanalise.png"
+#' em vez de clobbering "correlation_heatmap.png"/"pca.png" do lote XPC).
+save_batch_qc_plots <- function(chipqc_exp, output_dir = CHIPQC_FIG_DIR, name_suffix = "") {
   ensure_dir(output_dir)
 
   save_base_plot <- function(file, plot_expr) {
@@ -280,8 +325,8 @@ save_batch_qc_plots <- function(chipqc_exp, output_dir = CHIPQC_FIG_DIR) {
     })
   }
 
-  save_base_plot(file.path(output_dir, "correlation_heatmap.png"), plotCorHeatmap(chipqc_exp))
-  save_base_plot(file.path(output_dir, "pca.png"), plotPrincomp(chipqc_exp))
+  save_base_plot(file.path(output_dir, sprintf("correlation_heatmap%s.png", name_suffix)), plotCorHeatmap(chipqc_exp))
+  save_base_plot(file.path(output_dir, sprintf("pca%s.png", name_suffix)), plotPrincomp(chipqc_exp))
 
   log_message("06_chip_qc", sprintf("Figuras de correlacao/PCA salvas em '%s'.", output_dir))
   invisible(TRUE)

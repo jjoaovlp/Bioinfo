@@ -728,6 +728,77 @@ in-place; apenas lidos.
   `Arquivos/enrichment/nucleo_XPC_interferon_Reactome.csv`, coluna
   `geneID`). Reconstruído a partir do CSV já salvo, sem recomputar o
   enriquecimento (`scratchpad/add_genes_to_reactome_dotplot.R`).
+- **2026-07-19** — **Rótulo das figuras de ChIP-QC trocado de anticorpo para
+  tratamento/input** (correção do usuário sobre o pedido anterior): o
+  anticorpo já fica implícito na primeira parte do rótulo (proteína-alvo,
+  ex. "STAT1 WT"), então repeti-lo era redundante. `sample_title()`
+  (`06_chip_qc.R`) agora mostra `"<GSM> (<Proteína Genótipo>; <tratamento>)"`
+  -- nova `sample_treatment()` lê a coluna `Treatment` do metadata (ex.
+  "0h_post_UV", "IFNa_2h", "UN") ou devolve `"input"` quando a amostra é um
+  controle sem anticorpo de ChIP (via `sample_antibody() == "nenhum
+  (input)"`, reaproveitando o lookup do GEO já construído). `sample_antibody()`
+  continua existindo (usada internamente para detectar input), só não
+  aparece mais direto no título. As 33 figuras individuais +
+  `correlation_heatmap.png`/`pca.png` (XPC) + `ssd_comparativo.png` foram
+  regeneradas de novo com o novo formato, pela mesma via barata (RDS
+  individual em cache + `QCsample()` para extrair do lote, sem recomputar
+  nada).
+- **2026-07-19** — **PCA/correlação com todas as 24 amostras WT usadas na
+  metanálise** (10 XPC-WT + 4 STAT1 + 4 STAT2 + 4 IRF9 + 2 ELK1 -- pedido do
+  usuário: "fazer o PCA com todas as amostras... sem perder o PCA só de
+  XPC"). Como essas 24 amostras nunca foram batchadas juntas antes (XPC-WT
+  só existia dentro do lote de 19 XPC+H3K4me3+XPC-KO; as outras 14 só tinham
+  `ChIPQCsample()` individual), foi necessário rodar um `ChIPQC()` em lote
+  NOVO do zero (recomputa a matriz de binding consenso para as 24). Para não
+  sobrescrever o cache/figuras do lote XPC-only já existentes,
+  `run_chipqc_batch()`/`save_batch_qc_plots()` (`06_chip_qc.R`) ganharam os
+  parâmetros opcionais `experiment_name`/`name_suffix` (default preserva o
+  comportamento antigo — `chipqc_experiment.rds`/`correlation_heatmap.png`/
+  `pca.png`, sem mudança para quem já chamava sem esses argumentos). O lote
+  novo salva em `chipqc_experiment_metanalise.rds` e
+  `correlation_heatmap_metanalise.png`/`pca_metanalise.png` --
+  complementares às figuras originais, que continuam intactas.
+  `scratchpad/run_metanalise_pca.R`.
+- **2026-07-19** — **Seis refinamentos de enriquecimento/figuras/doc** (plano
+  `.claude/plans/cozy-percolating-wind.md`):
+  1. **Enriquecimento próprio do XPC** (GO/KEGG/Reactome/Hallmark via Módulo
+     10): geral (todos XPC-WT) e por timepoint, cada um em duas definições de
+     gene-alvo — gene mais próximo e só promotor ±3kb. **Achado importante**:
+     o peak calling do XPC-WT é quase todo VAZIO exceto no timepoint 0h — só
+     GSM6600715 (1462 picos) e GSM6600718 (7) têm sinal no 0h, GSM6600733 (109)
+     no 3h; **o 1h tem 0 picos nas 3 réplicas** (nota em
+     `Arquivos/enrichment/XPC_WT_timepoints_NOTA.txt`). Logo: `XPC_WT_geral_*`
+     (nearest, 1210 genes: GO=153/KEGG=18/Reactome=8/Hallmark=2 termos) e
+     `XPC_WT_0h_*` (1187 genes) são ricos; `XPC_WT_promotor_*` (265) e
+     `XPC_WT_3h_*` (53 genes) são esparsos; `XPC_WT_1h` impossível (0 picos). Os
+     termos refletem a **paisagem de ocupação cromatínica** do XPC (dominada
+     pela amostra de alto sinal 0h — actina/neurônio/glicosilação/MAPK), não a
+     assinatura canônica de reparo de DNA — resultado real, reportado como tal.
+     `scratchpad/run_xpc_enrichment{,_resume}.R`. **Bug corrigido**: consenso de
+     picos vazio quebrava `as.data.frame(annotatePeak(...))` com "invalid
+     subscript" — agora guarda-se `length==0` antes de anotar/enriquecer.
+  2. **ELK1 no enriquecimento**: XPC∩ELK1 = **0 genes no promotor / 7 no
+     gene-mais-próximo** — insuficiente para enriquecer. Só reportado; os 7
+     genes (SYMBOL + nome completo) em
+     `Arquivos/metanalise/xpc_elk1_genes_comuns.csv`.
+  3. **Fingerprint (SSD)**: `save_sample_qc_plots()` (`06_chip_qc.R`) parou de
+     usar `plotSSD()` (dois pontos Pre/Post_Blacklist sobrepostos + legenda
+     poluída) — agora plota só o SSD **pós-blacklist** (`@SSDBL`) numa barra
+     única com o valor anotado. 33 figuras regeneradas do cache.
+  4. **Venn**: corrigido o fundo **preto** (`ggVennDiagram` deixa o painel
+     transparente → rótulos/título invisíveis) com fundo branco explícito +
+     `bg="white"`, nas duas figuras; a lista dos **8 genes-núcleo** (interseção
+     das 4) agora aparece abaixo do Venn promotor (via `patchwork`).
+     `scratchpad/run_venn_fix.R`.
+  5. **Jaccard**: figura `jaccard_heatmap_valores.png` ganhou legenda
+     explicativa (fórmula J=|A∩B|/|A∪B|, faixa 0–1, leitura); parágrafo "O que é
+     o índice de Jaccard" adicionado ao `RESUMO_METANALISE.md`.
+     `scratchpad/run_jaccard_fig.R`.
+  6. **PCA recolorida** (`pca.png` e `pca_metanalise.png`): reconstruídas dos
+     caches RDS via `prcomp` sobre a matriz de binding (log2), coloridas por
+     **matiz = proteína/tipo** e **tom = tratamento** (claro→escuro).
+     Metanálise: XPC/STAT1/STAT2/IRF9/ELK1 × timepoint/estímulo; lote XPC:
+     XPC-WT/XPC-KO/input × timepoint. `scratchpad/run_pca_colored.R`.
 
 ## 5. Dependências
 

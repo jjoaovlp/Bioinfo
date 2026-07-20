@@ -19,11 +19,24 @@ IFNα2h, têm 40–62 mil picos (ativação massiva do complexo ISGF3).
 
 ## 2. Índice de Jaccard entre proteínas (nível de REGIÃO, não gene)
 
-Ver `Figuras/metanalise/jaccard_heatmap_valores.png`. Jaccard = |A∩B| / |A∪B| das coordenadas
-de pico. Só mede sobreposição *física* de picos — por isso XPC parece "não ter nada a ver" com
-as demais aqui (0.000–0.003): os picos de XPC (reparo de DNA, pós-UV) raramente caem exatamente
-sobre um pico de STAT/IRF/ELK1 (resposta a interferon / fator ubíquo). A relação real aparece só
-quando se olha o **gene mais próximo** de cada pico (seção 3), não a coordenada exata.
+Ver `Figuras/metanalise/jaccard_heatmap_valores.png`.
+
+**O que é o índice de Jaccard.** É uma medida de **quanto dois conjuntos se sobrepõem**:
+
+> **J(A, B) = |A ∩ B| / |A ∪ B|** = (regiões em comum) / (total de regiões distintas das duas).
+
+Varia de **0** (nenhuma coordenada de pico compartilhada) a **1** (os dois conjuntos de picos são
+idênticos). Aqui é calculado no **nível de região** (coordenada genômica), ou seja, mede
+sobreposição *física* de picos — duas proteínas só têm Jaccard alto se ligam literalmente às
+**mesmas** posições no genoma. Exemplo: se A tem 100 picos, B tem 100 picos e 40 são compartilhados,
+J = 40 / (100 + 100 − 40) = 40/160 = 0,25.
+
+Por isso o XPC parece "não ter nada a ver" com as demais aqui (0.000–0.003): os picos de XPC
+(reparo de DNA, pós-UV) raramente caem exatamente sobre um pico de STAT/IRF/ELK1 (resposta a
+interferon / fator ubíquo). Já STAT1↔STAT2 = 0.616 porque coligam massivamente aos **mesmos**
+sítios (complexo ISGF3, após IFN). A relação real do XPC com o eixo interferon aparece só quando se
+olha o **gene mais próximo** de cada pico (seção 3), não a coordenada exata — por isso a metanálise
+foi feita no nível de gene, não de região.
 
 | | XPC | STAT1 | STAT2 | IRF9 | ELK1 |
 |---|---|---|---|---|---|
