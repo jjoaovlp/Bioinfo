@@ -679,6 +679,43 @@ in-place; apenas lidos.
   consenso WT pequeno e específico, 1.577 regiões); XPC-KO e H3K4me3 mostram
   mais correlação cruzada entre si. No PCA, GSM6600715 (maior amostra do
   lote, 111M reads) é um outlier isolado no PC1 (62% da variância).
+- **2026-07-19** — **Anticorpo do ChIP adicionado a todas as figuras de
+  ChIP-QC identificadas por GSM** (pedido do usuário). O metadado padronizado
+  (`chipseq_metadata.csv`) nunca capturou o anticorpo real usado em cada
+  experimento — só a proteína-alvo. Extraído diretamente dos campos
+  `!Sample_characteristics_ch1` ("chip antibody"/"antibody") das series
+  matrix originais do GEO (`Dados/GEO/*_series_matrix.txt.gz`) via
+  `scratchpad/build_antibody_lookup.R`, casando por posição de coluna com
+  `!Sample_geo_accession`; salvo em `Dados/Metadata/antibody_lookup.csv`
+  (234 GSMs, cobertura de 100% das amostras usadas no projeto). **Achado
+  incidental relevante**: os 3 GSMs usados como input substituto de XPC-WT
+  (GSM6600680/686/692, rotulados "H3K4me3" no metadata do projeto) têm
+  `chip antibody: none` no GEO — confirmando que são de fato amostras de
+  input puro (nunca foram ChIP'adas com H3K4me3), consistente com a decisão
+  metodológica já registrada (§9 ponto 4) mas agora validado pelo próprio
+  metadado original.
+
+  `06_chip_qc.R`: nova `sample_antibody()` (lookup + fallback
+  `MANUAL_SAMPLE_ANTIBODY` para as amostras sintéticas de input ENCODE do
+  ELK1) e `sample_title()` passou a incluir o anticorpo -- formato
+  `"GSM... (Proteína Genótipo; Ac: <anticorpo>)"`. Todas as 33 figuras
+  individuais (fragment size + fingerprint) foram regeneradas **sem
+  recomputar nada**: as 14 com RDS individual em cache foram replotadas
+  direto; as 19 do XPC+H3K4me3 (só existiam dentro do
+  `ChIPQCexperiment` em lote) foram extraídas via `QCsample(chipqc_exp, id)`
+  -- accessor nativo do `ChIPQC` que não recomputa, confirmado em teste
+  (<1ms por amostra). `correlation_heatmap.png`/`pca.png` também
+  regenerados com os rótulos completos nos eixos: como o wrapper
+  `ChIPQC::plotPrincomp()`/`plotCorHeatmap()` sempre reescreve rótulos
+  customizados de volta para o ID puro via `getAtts()` interno, foi
+  necessário renomear diretamente `names(e@Samples)`, `e@DBA$samples$SampleID`,
+  `e@DBA$class["ID",]`/colnames e `colnames(e@DBA$binding)` numa cópia em
+  memória do `ChIPQCexperiment` cacheado, e para o PCA chamar
+  `DiffBind::dba.plotPCA()` diretamente (bypassando o wrapper) com
+  `label=NULL` para desligar os rótulos por-ponto (que com o texto mais
+  longo ficavam sobrepostos e ilegíveis) — a legenda por cor já mostra o
+  rótulo completo de cada amostra. `scratchpad/run_ssd_graph.R` (gera
+  `ssd_comparativo.png`) também atualizado para usar `sample_title()`.
 
 ## 5. Dependências
 

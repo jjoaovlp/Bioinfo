@@ -54,6 +54,45 @@ MANUAL_SAMPLE_LABELS <- c(
   ELK1input_pooled       = "ELK1 Input (ENCODE, pooled)"
 )
 
+#' Rotulos manuais de anticorpo para amostras sinteticas sem GSM proprio
+#' (mesmo caso de MANUAL_SAMPLE_LABELS acima).
+MANUAL_SAMPLE_ANTIBODY <- c(
+  ELK1input_ENCFF002ECM = "nenhum (input)",
+  ELK1input_ENCFF002ECL = "nenhum (input)",
+  ELK1input_pooled       = "nenhum (input)"
+)
+
+#' Lookup GSM -> anticorpo usado no ChIP, extraido dos campos
+#' "chip antibody"/"antibody" das series matrix originais do GEO
+#' (`Dados/GEO/*_series_matrix.txt.gz`) via
+#' `scratchpad/build_antibody_lookup.R`, salvo em
+#' `Dados/Metadata/antibody_lookup.csv` (cobre as 234 amostras dos 4 GSEs;
+#' valor "none" para amostras de input, sem anticorpo de ChIP).
+ANTIBODY_LOOKUP_PATH <- file.path(PROJECT_DIRS$metadata, "antibody_lookup.csv")
+.antibody_lookup_cache <- NULL
+load_antibody_lookup <- function() {
+  if (is.null(.antibody_lookup_cache) && file.exists(ANTIBODY_LOOKUP_PATH)) {
+    .antibody_lookup_cache <<- read.csv(ANTIBODY_LOOKUP_PATH, stringsAsFactors = FALSE)
+  }
+  .antibody_lookup_cache
+}
+
+#' Resolve o anticorpo usado no ChIP de um sample_id (GSM), a partir do
+#' lookup extraido do GEO. "none" (amostra de input, sem ChIP de proteina)
+#' vira "nenhum (input)" para ficar legivel na figura. Amostras sinteticas
+#' usam MANUAL_SAMPLE_ANTIBODY. Se nao encontrado, devolve NA.
+sample_antibody <- function(sample_id) {
+  if (sample_id %in% names(MANUAL_SAMPLE_ANTIBODY)) {
+    return(unname(MANUAL_SAMPLE_ANTIBODY[sample_id]))
+  }
+  lookup <- load_antibody_lookup()
+  if (is.null(lookup)) return(NA_character_)
+  row <- lookup[lookup$GSM == sample_id, ]
+  if (nrow(row) == 0 || is.na(row$Antibody[1])) return(NA_character_)
+  if (identical(row$Antibody[1], "none")) return("nenhum (input)")
+  row$Antibody[1]
+}
+
 #' Resolve um rotulo legivel "Proteina Genotipo" (ex. "XPC WT") para um
 #' sample_id (GSM), lendo Protein/Genotype de chipseq_metadata.csv e, se nao
 #' encontrado la (amostras fora do escopo original, ex. IRF9/H3K4me3 -- ver
@@ -77,11 +116,19 @@ sample_label <- function(sample_id) {
   NA_character_
 }
 
-#' Monta o titulo de figura "<sample_id> (<rotulo>)" ou so "<sample_id>" se
-#' o rotulo nao for encontrado (nunca falha por amostra desconhecida).
+#' Monta o titulo de figura "<sample_id> (<rotulo>; Ac: <anticorpo>)" -- inclui
+#' o anticorpo usado no ChIP (pedido do usuario 2026-07-19, para todas as
+#' figuras que identificam amostra por GSM), com fallback gracioso quando
+#' rotulo ou anticorpo nao sao encontrados (nunca falha por amostra
+#' desconhecida).
 sample_title <- function(sample_id) {
   label <- sample_label(sample_id)
-  if (is.na(label) || !nzchar(label)) sample_id else sprintf("%s (%s)", sample_id, label)
+  ab <- sample_antibody(sample_id)
+  parts <- c(
+    if (!is.na(label) && nzchar(label)) label,
+    if (!is.na(ab) && nzchar(ab)) sprintf("Ac: %s", ab)
+  )
+  if (length(parts) == 0) sample_id else sprintf("%s (%s)", sample_id, paste(parts, collapse = "; "))
 }
 
 #' Extrai frip/ssd/fragment_length de um objeto ChIPQCsample (mesmos campos
