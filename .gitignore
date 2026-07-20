@@ -33,40 +33,40 @@ tmp/
 # --- Projeto legado (fora de escopo do pipeline ChIP-seq atual) ---
 DiretorioR/
 
-# --- ProjetosCode / ChIP-seq pipeline: dados brutos grandes, nunca versionados ---
+# --- XPC_metaChIP / ChIP-seq pipeline: dados brutos grandes, nunca versionados ---
 # (a pasta em si permanece versionada via .gitkeep; só o conteúdo é ignorado)
-ProjetosCode/Dados/FASTQ/*
-!ProjetosCode/Dados/FASTQ/.gitkeep
-ProjetosCode/Dados/BAM/*
-!ProjetosCode/Dados/BAM/.gitkeep
-ProjetosCode/Dados/BigWig/*
-!ProjetosCode/Dados/BigWig/.gitkeep
-ProjetosCode/Dados/GEO/*.sra
-ProjetosCode/Dados/GEO/*.fastq.gz
-ProjetosCode/Dados/GEO/*.fastq
-ProjetosCode/Arquivos/**/*.bam
-ProjetosCode/Arquivos/**/*.bam.bai
-ProjetosCode/Arquivos/**/*.fastq.gz
+XPC_metaChIP/Dados/FASTQ/*
+!XPC_metaChIP/Dados/FASTQ/.gitkeep
+XPC_metaChIP/Dados/BAM/*
+!XPC_metaChIP/Dados/BAM/.gitkeep
+XPC_metaChIP/Dados/BigWig/*
+!XPC_metaChIP/Dados/BigWig/.gitkeep
+XPC_metaChIP/Dados/GEO/*.sra
+XPC_metaChIP/Dados/GEO/*.fastq.gz
+XPC_metaChIP/Dados/GEO/*.fastq
+XPC_metaChIP/Arquivos/**/*.bam
+XPC_metaChIP/Arquivos/**/*.bam.bai
+XPC_metaChIP/Arquivos/**/*.fastq.gz
 
 # Genoma/índices reconstruíveis a partir do BSgenome instalado
-ProjetosCode/Arquivos/genome_index/
+XPC_metaChIP/Arquivos/genome_index/
 
 # Genoma de referencia hg38 baixado (UCSC) e indice Bowtie2 construido a
 # partir dele -- grandes (~8GB) e 100% reconstruiveis via build_hg38_index
-ProjetosCode/Arquivos/genome/hg38.fa
-ProjetosCode/Arquivos/genome/hg38.fa.gz
-ProjetosCode/Arquivos/genome/hg38_bowtie2_index/
+XPC_metaChIP/Arquivos/genome/hg38.fa
+XPC_metaChIP/Arquivos/genome/hg38.fa.gz
+XPC_metaChIP/Arquivos/genome/hg38_bowtie2_index/
 
 # Saidas de analise real regeneraveis a partir dos modulos (QC, alinhamento,
 # filtragem, etc.) -- nao versionadas para nao inflar o repo a cada rodada
-ProjetosCode/Arquivos/qc/
-ProjetosCode/Arquivos/alignment/
-ProjetosCode/Arquivos/filtering/
-ProjetosCode/Arquivos/chip_qc/
-ProjetosCode/Figuras/chip_qc/
-ProjetosCode/Arquivos/differential/
-ProjetosCode/Arquivos/peakcalling/
-ProjetosCode/Dados/Peaks/
+XPC_metaChIP/Arquivos/qc/
+XPC_metaChIP/Arquivos/alignment/
+XPC_metaChIP/Arquivos/filtering/
+XPC_metaChIP/Arquivos/chip_qc/
+XPC_metaChIP/Figuras/chip_qc/
+XPC_metaChIP/Arquivos/differential/
+XPC_metaChIP/Arquivos/peakcalling/
+XPC_metaChIP/Dados/Peaks/
 
 # Artefato deixado pelo pacote Rbowtie2 no diretório de trabalho (log de
 # stderr do bowtie2, sempre regenerado a cada alinhamento)
@@ -74,21 +74,21 @@ ProjetosCode/Dados/Peaks/
 
 # Logs/sessionInfo são regenerados a cada execução -- não versionados
 # (a pasta em si permanece versionada via .gitkeep)
-ProjetosCode/Logs/*
-!ProjetosCode/Logs/.gitkeep
+XPC_metaChIP/Logs/*
+!XPC_metaChIP/Logs/.gitkeep
 
 # Saidas da metanalise WT (regeneraveis a partir dos picos, 2026-07-18)
-ProjetosCode/Arquivos/metanalise/
-ProjetosCode/Arquivos/granges_hg38/
-ProjetosCode/Arquivos/overlap/
-ProjetosCode/Arquivos/hotspots/
-ProjetosCode/Arquivos/network/
-ProjetosCode/Arquivos/regulatory_universe.*
-ProjetosCode/Arquivos/annotation/
-ProjetosCode/Figuras/metanalise/
-ProjetosCode/Figuras/annotation/
-ProjetosCode/Dados/Metadata/occupancy_matrix.csv
-ProjetosCode/Figuras/network/
-ProjetosCode/Figuras/overlap/
-ProjetosCode/Arquivos/enrichment/
-ProjetosCode/Figuras/enrichment/
+XPC_metaChIP/Arquivos/metanalise/
+XPC_metaChIP/Arquivos/granges_hg38/
+XPC_metaChIP/Arquivos/overlap/
+XPC_metaChIP/Arquivos/hotspots/
+XPC_metaChIP/Arquivos/network/
+XPC_metaChIP/Arquivos/regulatory_universe.*
+XPC_metaChIP/Arquivos/annotation/
+XPC_metaChIP/Figuras/metanalise/
+XPC_metaChIP/Figuras/annotation/
+XPC_metaChIP/Dados/Metadata/occupancy_matrix.csv
+XPC_metaChIP/Figuras/network/
+XPC_metaChIP/Figuras/overlap/
+XPC_metaChIP/Arquivos/enrichment/
+XPC_metaChIP/Figuras/enrichment/
