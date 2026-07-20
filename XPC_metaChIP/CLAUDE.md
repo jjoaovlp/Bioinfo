@@ -799,6 +799,40 @@ in-place; apenas lidos.
      **matiz = proteína/tipo** e **tom = tratamento** (claro→escuro).
      Metanálise: XPC/STAT1/STAT2/IRF9/ELK1 × timepoint/estímulo; lote XPC:
      XPC-WT/XPC-KO/input × timepoint. `scratchpad/run_pca_colored.R`.
+- **2026-07-20** — **Investigação de possível erro no peak calling do XPC-WT**
+  (usuário questionou o achado do enriquecimento: só 3 das 10 amostras XPC-WT
+  produziram picos). Diagnóstico completo (ver RESUMO_METANALISE.md §8):
+  profundidade adequada em todas (17–76M tags), input corretamente pareado por
+  timepoint em todos os 10 `.xls` do MACS3, nenhum crash silencioso — **não é
+  bug do pipeline**. Causa real: a estimativa de fragment length do MACS3 é
+  limpa (1 candidato) só em GSM6600715 (0h, 1462 picos); nas demais aparecem
+  vários candidatos dispersos (correlação cruzada ruidosa = ChIP sem estrutura
+  real). **Teste de sanidade** (pedido do usuário): reroda MACS3 com
+  q=0.5/broad-cutoff=0.5 (vs. padrão q=0.01/0.1) em 3 amostras — GSM6600715
+  (0h, referência com sinal real: 1462→3569 picos, ~2,4× esperado ao afrouxar)
+  vs. GSM6600724 (1h) e GSM6600732 (3h), ambas 0→**0 picos mesmo relaxado**.
+  Confirma que não é limiar estrito demais — ausência real de sinal nessas
+  amostras. Resultado em `Arquivos/sanity_test_peakcalling/`
+  (`scratchpad/run_sanity_test_relaxed_q.R`). **Gráfico comparativo** de
+  diagnóstico (n picos, profundidade tratamento/input, SSD × qualidade da
+  estimativa de fragmento) salvo em
+  `Figuras/annotation/XPC_WT_peakcalling_comparativo.png`
+  (`scratchpad/run_xpc_peakcalling_comparativo.R`).
+- **2026-07-20** — **Metanálise restrita às versões SEM TRATAMENTO/baseline**
+  (pedido do usuário, complementar à metanálise principal que usa IFNα 2h para
+  STAT1/STAT2/IRF9): XPC 0h_post_UV, STAT1/STAT2/IRF9 **UN**, ELK1 (sempre
+  "none"). Calculado **sem** usar `run_module_13-16()` (sobrescreveriam os
+  arquivos compartilhados `regulatory_universe.rds`/`occupancy_matrix.csv`/
+  `pairwise_overlap_table.csv` já commitados da metanálise principal) — Jaccard
+  e gene sets calculados diretamente e salvos com sufixo `_untreated`
+  (`Arquivos/metanalise/{jaccard,gene_sets}_untreated.csv`,
+  `Figuras/metanalise/{jaccard_heatmap,venn}_untreated_*.png`,
+  `scratchpad/run_metanalise_untreated.R`). **Resultado**: núcleo
+  XPC∩STAT1∩STAT2∩IRF9 = **0 genes** no baseline (vs. 8 no IFNα 2h); Jaccard
+  STAT1↔STAT2 cai de 0.616 para 0.041 — validação biológica limpa: STAT2 UN
+  tem só 5 regiões de pico no genoma inteiro (praticamente não liga cromatina
+  sem estímulo), confirmando por que a metanálise principal usa
+  deliberadamente o timepoint ativado. Detalhes em RESUMO_METANALISE.md §9.
 
 ## 5. Dependências
 

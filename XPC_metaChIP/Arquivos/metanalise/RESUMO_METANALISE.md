@@ -145,3 +145,78 @@ sobre-sensibilidade do peak calling (40–62 mil picos por amostra, bem mais que
 Por isso as interseções mais confiáveis nesta análise são as que envolvem os conjuntos
 específicos (XPC, IRF9, ELK1) — a seção 5 (núcleo de 8 genes) é o resultado central e mais
 robusto da metanálise.
+
+## 8. Diagnóstico do peak calling do XPC-WT (investigação de possível erro)
+
+Ver `Figuras/annotation/XPC_WT_peakcalling_comparativo.png`. Das 10 amostras XPC-WT (3
+timepoints post-UV), só **3 produziram picos** com os parâmetros padrão (MACS3 broad,
+q=0.01, broad-cutoff=0.1): GSM6600715 (0h, 1462 picos), GSM6600718 (0h, 7), GSM6600733 (3h,
+109). As outras 7 (incluindo **todas as 3 réplicas de 1h**) deram **0 picos**.
+
+**Investigação (conclusão: não é bug do pipeline)** — checado e descartado:
+- **Profundidade**: todas as 10 amostras têm 17–76 milhões de tags pós-filtro; a amostra
+  com mais profundidade (GSM6600724, 1h, 76,4M) deu 0 picos, e a com sinal mais forte
+  (GSM6600715) tem profundidade comparável (74,7M) — não é falta de leitura.
+- **Pareamento do input**: conferido nos 10 `.xls` do MACS3 — cada réplica usa o input
+  correto do próprio timepoint (0h→GSM6600680, 1h→GSM6600686, 3h→GSM6600692), sem
+  nenhuma amostra cruzada.
+- **Erros de execução**: nenhum job crashou sem tratamento; os 3 que precisaram do
+  fallback `--nomodel` (718, 725, 734) já estão previstos no código.
+
+**Achado real**: a estimativa de comprimento de fragmento do MACS3 (`alternative
+fragment length`) é **limpa e única** só em GSM6600715 (202bp) — nas demais aparecem
+**vários candidatos dispersos** (ex. GSM6600732 lista 10 candidatos entre 99–580bp),
+assinatura clássica de correlação cruzada ruidosa = ChIP com pouca estrutura real,
+independente da profundidade. SSD (ChIPQC) não discrimina bem sozinho (0,68–0,92 em
+ambos os grupos).
+
+**Teste de sanidade** (pedido do usuário): re-rodado o MACS3 com limiares muito mais
+permissivos (q=0.5, broad-cutoff=0.5, vs. padrão q=0.01/0.1) em 3 amostras — as duas
+mais fracas (GSM6600724, 1h; GSM6600732, 3h) e a de referência (GSM6600715, 0h), para
+calibrar o efeito do relaxamento numa amostra que sabidamente tem sinal real.
+Resultado (`Arquivos/sanity_test_peakcalling/`):
+
+| Amostra | Picos padrão (q=0.01) | Picos relaxado (q=0.5) |
+|---|---|---|
+| GSM6600715 (0h, referência) | 1462 | **3569** (~2,4×) |
+| GSM6600724 (1h) | 0 | **0** |
+| GSM6600732 (3h) | 0 | **0** |
+
+Na amostra de referência o relaxamento inflou os picos de forma esperada (~2,4×,
+comportamento normal de afrouxar o limiar). Nas duas amostras fracas, **mesmo no teste
+mais permissivo possível, continuam com 0 picos** — confirma que não é o limiar padrão
+que é estrito demais; não há absolutamente nenhuma região com qualquer estrutura de
+enriquecimento detectável nessas amostras.
+
+**Leitura**: GSM6600715 é um outlier de sinal forte (já identificado antes no PCA como
+outlier isolado no PC1, maior amostra do lote). A maioria das réplicas de XPC-WT parece
+ter ChIP fraco/sem enriquecimento estruturado — plausível biologicamente (XPC tem
+associação difusa/transitória à cromatina fora do reparo ativo), mas também consistente
+com qualidade de anticorpo/experimento variável entre réplicas do estudo original
+(GSE214182). A consequência prática: o consenso XPC-WT usado na metanálise principal é
+dominado por GSM6600715.
+
+## 9. Metanálise SOMENTE das versões sem tratamento (baseline)
+
+Pedido do usuário: repetir a metanálise usando só as condições **não-estimuladas** —
+XPC 0h_post_UV (proxy de baseline; não há amostra verdadeiramente pré-UV neste desenho),
+STAT1/STAT2/IRF9 **UN** (pré-interferon) e ELK1 (ENCODE, sempre "none"). Ver
+`Figuras/metanalise/jaccard_heatmap_untreated.png`,
+`venn_untreated_{nearest,promotor}.png`, `Arquivos/metanalise/{jaccard,gene_sets}_untreated.csv`.
+
+| Proteína | Amostras | N regiões consenso | Genes (promotor) |
+|---|---|---|---|
+| XPC | 0h_post_UV (4) | 1461 | 252 |
+| STAT1 | UN (2) | 46 | 24 |
+| STAT2 | UN (2) | **5** | 3 |
+| IRF9 | UN (2) | 69 | 69 |
+| ELK1 | none (2) | 212 | 189 |
+
+**Resultado: núcleo XPC∩STAT1∩STAT2∩IRF9 = 0 genes** (tanto por promotor quanto por
+gene mais próximo) — e o Jaccard STAT1↔STAT2 cai de **0.616 (IFNα 2h)** para **0.041
+(baseline)**. Isso é uma validação biológica limpa, não uma falha da análise: STAT2 UN
+tem só 5 regiões de pico no genoma inteiro (STAT2 é quase inteiramente dependente de
+ativação por interferon para ligar cromatina), então não há material suficiente para
+qualquer interseção robusta no estado basal. Confirma por que a metanálise principal
+(seção 1–5) usa deliberadamente IFNα 2h para STAT1/STAT2/IRF9 em vez do baseline — é o
+único timepoint em que esses fatores realmente ocupam o genoma.

@@ -1,0 +1,11 @@
+"sample_id","treat","ctrl","n_frag_candidates","n_peaks","timepoint","qualidade_fragmento","ssd"
+"GSM6600715",74724752,38906374,1,1462,"0h","limpa (1 candidato)",0.923
+"GSM6600716",41375903,38906374,8,0,"0h","ruidosa (2+ candidatos)",0.748
+"GSM6600717",39768716,38906374,3,0,"0h","ruidosa (2+ candidatos)",0.784
+"GSM6600718",17546754,38906374,NA,7,"0h","sem estimativa (fallback)",0.681
+"GSM6600724",76403988,30740254,2,0,"1h","ruidosa (2+ candidatos)",0.909
+"GSM6600725",28622422,30740254,NA,0,"1h","sem estimativa (fallback)",0.707
+"GSM6600726",47233438,30740254,3,0,"1h","ruidosa (2+ candidatos)",0.817
+"GSM6600732",57416711,30038602,10,0,"3h","ruidosa (2+ candidatos)",0.821
+"GSM6600733",37174531,30038602,7,109,"3h","ruidosa (2+ candidatos)",0.758
+"GSM6600734",53052392,30038602,NA,0,"3h","sem estimativa (fallback)",0.775
