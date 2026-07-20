@@ -716,6 +716,18 @@ in-place; apenas lidos.
   longo ficavam sobrepostos e ilegíveis) — a legenda por cor já mostra o
   rótulo completo de cada amostra. `scratchpad/run_ssd_graph.R` (gera
   `ssd_comparativo.png`) também atualizado para usar `sample_title()`.
+- **2026-07-19** — **Nomes dos genes adicionados ao dotplot de enriquecimento.**
+  `nucleo_XPC_interferon_Reactome_dotplot.png` é o único termo significativo
+  encontrado (Reactome, "Modulation of host responses by IFN-stimulated
+  genes", p.adjust=0.022) entre os 4 enriquecimentos rodados (GO/KEGG/
+  Reactome/Hallmark) para os 8 genes-núcleo -- e cobre só **2 genes** (RIGI,
+  IFI44L, já em SYMBOL — `10_enrichment.R` usa `readable=TRUE`/
+  `setReadable()`, nunca Entrez cru). Como são poucos, os nomes foram
+  anotados diretamente sobre o ponto do gráfico (`geom_text`), em vez de um
+  CSV separado (o CSV com a lista completa por via já existe em
+  `Arquivos/enrichment/nucleo_XPC_interferon_Reactome.csv`, coluna
+  `geneID`). Reconstruído a partir do CSV já salvo, sem recomputar o
+  enriquecimento (`scratchpad/add_genes_to_reactome_dotplot.R`).
 
 ## 5. Dependências
 
