@@ -1,0 +1,2 @@
+"ID","Description","GeneRatio","BgRatio","RichFactor","FoldEnrichment","zScore","pvalue","p.adjust","qvalue","geneID","Count"
+"GO:0000956","nuclear-transcribed mRNA catabolic process","8/127","141/18842",0.0567375886524823,8.41771374322891,7.28292990743175,5.10544431818529e-06,0.0300200125909295,0.0300200125909295,"PYM1/GSPT1/EXOSC4/SNRPB/SNRPE/DDX5/ALYREF/DHX34",8

@@ -228,3 +228,41 @@ ativação por interferon para ligar cromatina), então não há material sufici
 qualquer interseção robusta no estado basal. Confirma por que a metanálise principal
 (seção 1–5) usa deliberadamente IFNα 2h para STAT1/STAT2/IRF9 em vez do baseline — é o
 único timepoint em que esses fatores realmente ocupam o genoma.
+
+## 10. TODAS as combinações de 2+ proteínas (não só ancoradas em XPC) + enriquecimento
+
+Pedido do usuário: as seções 3–4 só cobriam combinações que incluíam XPC. Os dois UpSet
+(`upset_5_proteinas.png` = gene mais próximo, `upset_promotor_5_proteinas.png` = só
+promotor ±3kb) mostram **todas** as interseções possíveis entre as 5 proteínas, inclusive
+as que não envolvem XPC (ex. STAT1∩STAT2 sozinhas). Gerado um CSV único e completo por
+versão — `Arquivos/metanalise/genes_comuns_todas_combinacoes_{nearest,promotor}.csv` —
+com todas as 26 combinações de 2 a 5 proteínas (contagem + lista de genes), e rodado
+enriquecimento funcional (GO/KEGG/Reactome/Hallmark) para cada combinação com genes
+suficientes (`Arquivos/enrichment/<combinação>_{nearest,promotor}_{go,kegg,reactome,hallmark}.csv`).
+
+**Título das figuras** (pedido do usuário): os dois UpSet agora trazem, no próprio
+gráfico, a que condições eles se referem — "WT apenas; XPC=todos os timepoints post-UV;
+STAT1/STAT2/IRF9=untreated+IFNα 2h; ELK1=ENCODE" — e deixam explícito se é a versão
+"gene mais próximo" ou "só promotor".
+
+**Log de status por combinação** (`enriquecimento_log_{nearest,promotor}.csv`) — versão
+promotor:
+
+| Combinação | N genes | Status |
+|---|---|---|
+| STAT1_STAT2 | 13017 | enriquecido |
+| STAT1_STAT2_IRF9 | 477 | enriquecido |
+| STAT1_IRF9 / STAT2_IRF9 | 484 | enriquecido |
+| STAT1_ELK1 / STAT2_ELK1 | 168-169 | enriquecido |
+| XPC_STAT1 / XPC_STAT2 | 164-170 | enriquecido |
+| XPC_STAT1_STAT2 | 157 | enriquecido |
+| XPC_STAT1_IRF9 / XPC_STAT2_IRF9 / XPC_IRF9 | 8 | enriquecido (mesmo núcleo da seção 5) |
+| STAT1_IRF9_ELK1 / STAT2_IRF9_ELK1 / IRF9_ELK1 | 7 | 0 termos significativos |
+| **qualquer combinação com XPC + ELK1** | **0** | insuficiente — XPC nunca compartilha gene de promotor com ELK1 |
+
+Confirma, de forma exaustiva (todas as 26 combinações, não só as com XPC), o padrão já
+visto: XPC e ELK1 nunca convergem em nenhuma combinação; STAT1/STAT2/IRF9 convergem
+fortemente entre si (esperado, complexo ISGF3); as combinações com XPC ficam
+consistentemente em torno de 8 genes quando incluem todo o eixo interferon — o mesmo
+núcleo de 8 genes da seção 5, agora confirmado como estável através de múltiplas
+combinações parciais também.

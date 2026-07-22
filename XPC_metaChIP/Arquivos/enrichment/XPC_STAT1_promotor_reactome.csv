@@ -1,0 +1,2 @@
+"ID","Description","GeneRatio","BgRatio","RichFactor","FoldEnrichment","zScore","pvalue","p.adjust","qvalue","geneID","Count"
+"R-HSA-1474290","Collagen formation","6/74","90/11287",0.0666666666666667,10.1684684684685,7.09401631767547,2.60444595460336e-05,0.044900648257362,0.044900648257362,"COL21A1/DST/PCOLCE2/ADAMTS3/COL14A1/CTSV",6

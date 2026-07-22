@@ -833,6 +833,26 @@ in-place; apenas lidos.
   tem só 5 regiões de pico no genoma inteiro (praticamente não liga cromatina
   sem estímulo), confirmando por que a metanálise principal usa
   deliberadamente o timepoint ativado. Detalhes em RESUMO_METANALISE.md §9.
+- **2026-07-21** — **Todas as combinações de 2+ proteínas (não só ancoradas em
+  XPC) + enriquecimento por combinação**. As seções 3–4 do RESUMO_METANALISE.md
+  só cobriam combinações que incluíam XPC; os dois UpSet
+  (`upset_5_proteinas.png`/`upset_promotor_5_proteinas.png`) sempre mostraram
+  **todas** as interseções entre as 5 proteínas, inclusive sem XPC. Gerado CSV
+  único e completo por versão
+  (`Arquivos/metanalise/genes_comuns_todas_combinacoes_{nearest,promotor}.csv`,
+  26 combinações de 2–5 proteínas cada) reconstruindo os gene sets a partir do
+  cache `granges_hg38/` (sem recomputar picos). Enriquecimento
+  (GO/KEGG/Reactome/Hallmark) rodado para cada combinação com ≥5 genes
+  (`Arquivos/enrichment/<combinação>_{nearest,promotor}_*.csv`; log de status
+  em `enriquecimento_log_{nearest,promotor}.csv`). **Achado**: confirmado de
+  forma exaustiva que **nenhuma combinação incluindo XPC+ELK1 tem genes em
+  comum** (nível promotor) — reforça Jaccard≈0 já visto. **Títulos das
+  figuras**: os dois UpSet agora indicam no próprio gráfico as condições
+  (WT-only; XPC=todos os timepoints post-UV; STAT1/STAT2/IRF9=untreated+IFNα
+  2h; ELK1=ENCODE; gene mais próximo vs. só promotor) — pedido do usuário para
+  nunca deixar implícito a que dados uma figura se refere.
+  `scratchpad/run_all_combinations_metanalise.R`. Detalhes em
+  RESUMO_METANALISE.md §10.
 
 ## 5. Dependências
 
