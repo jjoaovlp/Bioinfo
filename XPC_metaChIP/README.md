@@ -45,7 +45,7 @@ principal). A tabela abaixo mostra exatamente onde cada amostra parou.
 | **XPC-KO** | 0h | 722,723 | Sim | Sim (revisado 2026-07-22) | 0, 4 | Diffbind (WT vs KO) |
 | **XPC-KO** | 1h | 730,731 | Sim | Sim (revisado) | 0, 5 | Diffbind |
 | **XPC-KO** | 3h | 738,739 | Sim | Sim (revisado) | 0, 8 | Diffbind |
-| ASH1L-KO | 0h/1h/3h | 719-721,727-729,735-737 | **Não** (nunca baixado/alinhado) | — | — | Não usado (citado no metadata como comparação secundária, nunca executado) |
+| ASH1L-KO | 0h/1h/3h | 719-721,727-729,735-737 | FASTQ baixado (0h chegou a ser alinhado, nunca filtrado; 1h/3h nem alinhados) | Não | — | Não usado (citado no metadata como comparação secundária, nunca executado); FASTQ/BAM removidos em 2026-07-23 (liberação de espaço) |
 | Input H3K4me3 (substituto) | 0h/1h/3h | 680, 686, 692 | Sim | — (usado só como `-c` do MACS3) | — | Input pareado por timepoint para WT e XPC-KO |
 
 **Ponto de atenção nº1 — heterogeneidade do ChIP-WT**: das 10 réplicas WT, só
@@ -288,3 +288,13 @@ Analises/
 
 Dados brutos grandes (FASTQ/BAM/BigWig) nunca são versionados — ver `.gitignore` na
 raiz do repositório.
+
+**Limpeza de espaço (2026-07-23):** removidos ~154GB de dado bruto que não
+entra em nenhuma análise atual — FASTQ/BAM das 54 amostras STAT1/STAT2/
+STAT1-KO nunca peak-called (as mesmas listadas como "Não usado" nas tabelas
+acima), o FASTQ/BAM parcial do ASH1L-KO, os `.sorted.bam` (pré-filtro,
+Módulo 05) de todas as amostras que **são** usadas — só o `.filtered.bam`
+final é lido por qualquer módulo a partir do 06 — e as 2 réplicas cruas de
+input do ELK1 já mescladas em `ELK1input_pooled.filtered.bam`. Nada usado em
+análise atual foi tocado; recuperar os dados removidos exigiria baixar/
+realinhar do zero (várias horas por amostra).
