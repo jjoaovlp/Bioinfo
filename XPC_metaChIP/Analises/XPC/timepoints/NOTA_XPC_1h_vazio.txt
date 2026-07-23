@@ -1,0 +1,6 @@
+XPC 1h post-UV: os 3 replicados (GSM6600724, GSM6600725, GSM6600726) nao geraram
+nenhum pico no Modulo 07 (MACS3), mesmo com input H3K4me3 pareado e teste de
+sanidade com q-value relaxado (0.5). A causa e' ausencia real de sinal de ChIP
+nessas amostras (nao e' um limiar de threshold), origem no peak calling por
+amostra -- a metanalise usa os mesmos arquivos de picos, entao o 0 se propaga
+identico para a analise XPC-so e para a metanalise. Sem gene set para 1h.

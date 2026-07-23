@@ -110,6 +110,10 @@ run_diffbind_consensus_count <- function(wt_bams, ko_bams, wt_peaks, ko_peaks) {
 
   group <- factor(c(rep("WT", length(wt_bams)), rep("KO", length(ko_bams))), levels = c("WT", "KO"))
   y <- csaw::asDGEList(se, group = group)
+  ## TMM (trimmed mean of M-values) -- corrige diferencas de composicao entre
+  ## bibliotecas, alem do escalonamento por tamanho de biblioteca que
+  ## asDGEList() ja faz sozinho (ver CLAUDE.md S9.1/plano tarefa 1b).
+  y <- edgeR::calcNormFactors(y)
   design <- model.matrix(~group)
   y <- edgeR::estimateDisp(y, design)
   fit <- edgeR::glmQLFit(y, design)
@@ -129,7 +133,9 @@ run_diffbind_standard <- function(sample_sheet) {
   suppressMessages(library(DiffBind))
   dbObj <- dba(sampleSheet = sample_sheet)
   dbObj <- dba.count(dbObj)
-  dbObj <- dba.normalize(dbObj)
+  ## TMM em vez do default (so library-size) -- corrige diferencas de
+  ## composicao entre bibliotecas (ver CLAUDE.md S9.1/plano tarefa 1b).
+  dbObj <- dba.normalize(dbObj, normalize = DBA_NORM_TMM)
   dbObj <- dba.contrast(dbObj, categories = DBA_CONDITION, minMembers = 2)
   dbObj <- dba.analyze(dbObj)
   report <- dba.report(dbObj)

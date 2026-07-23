@@ -1,0 +1,2 @@
+"category","subcategory","ID","Description","GeneRatio","BgRatio","RichFactor","FoldEnrichment","zScore","pvalue","p.adjust","qvalue","geneID","Count"
+"Environmental Information Processing","Signal transduction","hsa04071","Sphingolipid signaling pathway","2/5","125/9419",0.016,30.1408,7.55844384601432,0.00170210026147894,0.0340420052295787,0.0268752672865095,"5581/8879",2

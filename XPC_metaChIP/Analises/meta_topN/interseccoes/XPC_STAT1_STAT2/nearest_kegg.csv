@@ -1,0 +1,2 @@
+"category","subcategory","ID","Description","GeneRatio","BgRatio","RichFactor","FoldEnrichment","zScore","pvalue","p.adjust","qvalue","geneID","Count"
+"Cellular Processes","Cellular community - eukaryotes","hsa04530","Tight junction","3/7","171/9419",0.0175438596491228,23.6065162907268,8.13570495511266,0.000195051737217755,0.0128734146563718,0.0119084218511893,"10686/1740/861",3

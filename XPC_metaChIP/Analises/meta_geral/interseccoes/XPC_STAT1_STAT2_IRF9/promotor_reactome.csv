@@ -1,0 +1,2 @@
+"ID","Description","GeneRatio","BgRatio","RichFactor","FoldEnrichment","zScore","pvalue","p.adjust","qvalue","geneID","Count"
+"R-HSA-9909505","Modulation of host responses by IFN-stimulated genes","2/4","17/11287",0.117647058823529,331.970588235294,25.7122231786896,1.27888523927114e-05,0.000716175733991837,0.00017500534853184,"RIGI/IFI44L",2

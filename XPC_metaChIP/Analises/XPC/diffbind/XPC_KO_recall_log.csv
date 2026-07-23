@@ -1,0 +1,7 @@
+"sample_id","protein","peak_type","has_input","nomodel_fallback","peak_file","n_peaks"
+"GSM6600722","XPC","broad",TRUE,TRUE,"C:/Users/João - PC/Desktop/Bioinfo/XPC_metaChIP/Dados/Peaks/GSM6600722_peaks.broadPeak",0
+"GSM6600723","XPC","broad",TRUE,TRUE,"C:/Users/João - PC/Desktop/Bioinfo/XPC_metaChIP/Dados/Peaks/GSM6600723_peaks.broadPeak",4
+"GSM6600730","XPC","broad",TRUE,TRUE,"C:/Users/João - PC/Desktop/Bioinfo/XPC_metaChIP/Dados/Peaks/GSM6600730_peaks.broadPeak",0
+"GSM6600731","XPC","broad",TRUE,TRUE,"C:/Users/João - PC/Desktop/Bioinfo/XPC_metaChIP/Dados/Peaks/GSM6600731_peaks.broadPeak",5
+"GSM6600738","XPC","broad",TRUE,TRUE,"C:/Users/João - PC/Desktop/Bioinfo/XPC_metaChIP/Dados/Peaks/GSM6600738_peaks.broadPeak",0
+"GSM6600739","XPC","broad",TRUE,FALSE,"C:/Users/João - PC/Desktop/Bioinfo/XPC_metaChIP/Dados/Peaks/GSM6600739_peaks.broadPeak",8

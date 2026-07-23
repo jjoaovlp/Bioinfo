@@ -1,0 +1,5 @@
+"category","subcategory","ID","Description","GeneRatio","BgRatio","RichFactor","FoldEnrichment","zScore","pvalue","p.adjust","qvalue","geneID","Count"
+"Organismal Systems","Nervous system","hsa04721","Synaptic vesicle cycle","1/1","79/9419",0.0126582278481013,119.227848101266,10.873262992371,0.00838730226138662,0.0246310648688823,NA,"6507",1
+"Organismal Systems","Nervous system","hsa04724","Glutamatergic synapse","1/1","116/9419",0.00862068965517241,81.198275862069,8.95534900838984,0.0123155324344412,0.0246310648688823,NA,"6507",1
+"Environmental Information Processing","Signaling molecules and interaction","hsa04082","Neuroactive ligand signaling","1/1","199/9419",0.0050251256281407,47.3316582914573,6.80673624371161,0.0211275082280498,0.028170010970733,NA,"6507",1
+"Human Diseases","Neurodegenerative disease","hsa05016","Huntington disease","1/1","309/9419",0.00323624595469256,30.4822006472492,5.42975143512566,0.0328060303641575,0.0328060303641575,NA,"6507",1

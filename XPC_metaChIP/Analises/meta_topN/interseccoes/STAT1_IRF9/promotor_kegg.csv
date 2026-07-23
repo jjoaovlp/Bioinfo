@@ -1,0 +1,3 @@
+"category","subcategory","ID","Description","GeneRatio","BgRatio","RichFactor","FoldEnrichment","zScore","pvalue","p.adjust","qvalue","geneID","Count"
+"Organismal Systems","Development and regeneration","hsa04382","Cornified envelope formation","1/1","217/9419",0.00460829493087558,43.4055299539171,6.51195285255637,0.0230385391230492,0.0428920267544326,NA,"3856",1
+"Environmental Information Processing","Signaling molecules and interaction","hsa04519","Cadherin signaling","1/1","404/9419",0.00247524752475248,23.3143564356436,4.72380740882221,0.0428920267544326,0.0428920267544326,NA,"3856",1

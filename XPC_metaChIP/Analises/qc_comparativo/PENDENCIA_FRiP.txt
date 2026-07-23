@@ -1,0 +1,8 @@
+FRiP (fracao de reads em picos) esta NA para praticamente todas as amostras nos
+caches de ChIPQC (Arquivos/chip_qc/chipqc_metrics.csv e metrics/*.csv), porque o
+ChIPQCsample() foi rodado sem a lista de picos (o design original antecedia o
+peak calling). Agora que ha picos para quase todas as amostras (Modulo 07),
+seria possivel regenerar rodando ChIPQCsample(..., peaks = <picos da amostra>)
+por amostra -- mas isso e' custoso (ordem de minutos por amostra, 30+ amostras)
+e nao foi rodado nesta rodada de tarefas. PENDENCIA registrada para uma proxima
+sessao (ver plano, tarefa 8b).

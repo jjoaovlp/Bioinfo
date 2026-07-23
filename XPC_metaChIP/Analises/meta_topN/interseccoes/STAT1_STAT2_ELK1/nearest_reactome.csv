@@ -1,0 +1,4 @@
+"ID","Description","GeneRatio","BgRatio","RichFactor","FoldEnrichment","zScore","pvalue","p.adjust","qvalue","geneID","Count"
+"R-HSA-9662361","Sensory processing of sound by outer hair cells of the cochlea","1/1","55/11287",0.0181818181818182,205.218181818182,14.2904927073275,0.0048728625852752,0.00682200761938523,NA,"CDH23",1
+"R-HSA-9662360","Sensory processing of sound by inner hair cells of the cochlea","1/1","69/11287",0.0144927536231884,163.579710144928,12.7506748897824,0.00611322760698152,0.00682200761938523,NA,"CDH23",1
+"R-HSA-9659379","Sensory processing of sound","1/1","77/11287",0.012987012987013,146.584415584416,12.065836712985,0.00682200761938523,0.00682200761938523,NA,"CDH23",1

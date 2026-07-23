@@ -1046,6 +1046,52 @@ modelagem de background local); espera-se também um número de picos "específi
 muito menor no XPC-KO, o que serve como validação positiva de sensibilidade do
 antocorpo/pipeline (não há proteína XPC para imunoprecipitar nesse genótipo).
 
+### 9.1-REVISÃO (2026-07-22) — `--nolambda` substituído por input H3K4me3 pareado
+
+**Motivo da revisão:** a decisão original (`--nolambda`) causou exatamente o
+problema que ela tentava evitar. Sem modelagem de background local, os 6 XPC-KO
+geraram **250 mil+ picos de "background"** cada (ex. GSM6600722=259762,
+GSM6600730=227121 — essencialmente ruído/cromatina aberta, não sinal real). Isso
+confundiu o Módulo 08: o consenso WT∪KO (353522 regiões, 98% "estável") continha
+**3283 regiões classificadas "Gained"** (mais sinal no KO que no WT) —
+biologicamente implausível, já que não há proteína XPC no KO para imunoprecipitar.
+A causa raiz não era biologia, era desenho de peak-calling assimétrico: WT usava
+input (H3K4me3 substituto) e KO não usava nenhum.
+
+**Decisão revisada:** o input H3K4me3 substituto do WT, pareado por timepoint, **já
+estava disponível e não era do mesmo braço de comparação problemático** que a
+decisão original temia (WT-vs-KO usando input de WT) — é o mesmo substituto
+genérico de cromatina aberta usado para todo o desenho (WT e ASH1L-KO), só nunca
+havia sido estendido ao XPC-KO. Revertendo a proibição original: os 6 XPC-KO
+passaram a rodar com esse input, pareado por timepoint (GSM6600722/723→GSM6600680
+[0h]; GSM6600730/731→GSM6600686 [1h]; GSM6600738/739→GSM6600692 [3h]), sem
+`--nolambda`.
+
+**Resultado:** os picos do KO colapsaram para **0, 4, 0, 5, 0, 8** (de
+259762/3843/227121/2445/27928/8143) — o comportamento correto de controle
+negativo. O consenso WT∪KO caiu de 353522 para **1576 regiões** (agora
+essencialmente WT). Refazendo o diffbind (Módulo 08) com esse consenso simétrico
+**+ TMM** (`edgeR::calcNormFactors()`/`DBA_NORM_TMM`, ver abaixo): **0 regiões
+"Gained", 0 "Lost", 1576 "Stable"** — nenhuma diferença WT-vs-KO sobrevive à
+correção de FDR (155 nominalmente significativas a p<0.05 bruto, 0 a FDR<0.05).
+Isso é honesto: o artefato de 3283 "ganhos" desapareceu; não sobrou um sinal
+"perdido" limpo porque o ChIP de XPC-WT já é fraco/heterogêneo por si só (ver
+§RESUMO_METANALISE, heterogeneidade das réplicas WT) — não há potência estatística
+suficiente nas ~1576 regiões consenso para detectar diferença real, se ela existir,
+com FDR<0.05 nesse desenho.
+
+**TMM adicionado ao Módulo 08:** `run_diffbind_consensus_count()` (XPC) ganhou
+`edgeR::calcNormFactors(y)` logo após `csaw::asDGEList()`; `run_diffbind_standard()`
+(STAT2) trocou `dba.normalize(dbObj)` (default, só library-size) por
+`dba.normalize(dbObj, normalize = DBA_NORM_TMM)`. Nenhum dos dois caminhos aplicava
+correção de composição de biblioteca antes.
+
+**Regra revisada (substitui a de 9.1):** input H3K4me3 substituto **pode** ser
+reutilizado para XPC-KO, desde que pareado pelo mesmo timepoint que o WT
+correspondente — a restrição original só fazia sentido sob a suposição (incorreta
+na prática) de que rodar sem controle seria mais seguro que compartilhar o
+substituto entre genótipos.
+
 ## 10. Pendências futuras (TODO)
 
 - [x] **XPC-KO sem input/controle disponível** — decisão registrada em §9.1 e
