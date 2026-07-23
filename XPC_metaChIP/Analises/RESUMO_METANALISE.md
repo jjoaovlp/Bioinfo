@@ -55,6 +55,22 @@ caminho nas seções 1–10 abaixo (`Arquivos/metanalise/...`, `Figuras/metanali
   das amostras; regenerar exigiria rodar `ChIPQCsample()` com picos para 30+
   amostras (custoso). Ver `Analises/qc_comparativo/PENDENCIA_FRiP.txt`.
 
+**Organização adicional (mesmo dia, reorganização fina):** cada subpasta de
+`Analises/` ganhou um `README.md` próprio indicando explicitamente se o
+conteúdo tem normalização (TMM/top-N) ou não, e quais amostras/estado por
+proteína — ver `meta_geral/README.md`, `meta_topN/README.md`,
+`meta_baseline/README.md`, `meta_geral_ANTES_revisao/README.md`,
+`XPC/README.md`, `XPC/diffbind/README.md`, `rede/README.md`,
+`qc_comparativo/README.md`. `XPC/diffbind/` foi dividido em
+`atual_input_pareado_TMM/` (vigente) vs `ANTES_nolambda_semTMM/` (legado) —
+antes os dois conjuntos ficavam misturados na mesma pasta, só diferenciados
+pelo sufixo do nome do arquivo. Também recuperados para
+`meta_geral_ANTES_revisao/` os arquivos de Jaccard **por região** (não por
+gene) do antigo Módulo 15/16 (`jaccard_regiao_pairwise.csv`,
+`jaccard_heatmap_regiao.png`, `regioes_compartilhadas_todas_proteinas.csv`),
+que tinham ficado para trás em `Arquivos/overlap/`/`Figuras/overlap/` na
+reorganização anterior.
+
 ---
 
 Todos os dados brutos (CSV/TXT) da versão ORIGINAL (pré-revisão) estão em
