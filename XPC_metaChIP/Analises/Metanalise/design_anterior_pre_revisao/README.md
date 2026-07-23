@@ -1,8 +1,8 @@
-# meta_geral_ANTES_revisao — design ORIGINAL (legado, anterior a 2026-07-22)
+# Metanalise/design_anterior_pre_revisao — design ORIGINAL (legado, anterior a 2026-07-22)
 
 **Não é a análise principal atual** — preservado como registro histórico/
-auditoria, não apagado. A análise principal vigente é `../meta_geral/` (ou
-`../meta_topN/` para a versão normalizada).
+auditoria, não apagado. A análise principal vigente é `../Metanalise/principal_sem_normalizacao/` (ou
+`../Metanalise/principal_normalizado_topN/` para a versão normalizada).
 
 **Normalização:** nenhuma (sem TMM no diffbind associado, sem top-N).
 
@@ -13,7 +13,7 @@ auditoria, não apagado. A análise principal vigente é `../meta_geral/` (ou
 - **ELK1** = constitutivo — igual ao atual
 
 **Por que foi substituído (2026-07-22):** o "untreated" quase não contribuía
-sinal (STAT2 UN = 5 regiões no genoma inteiro, ver `../meta_baseline/`) e só
+sinal (STAT2 UN = 5 regiões no genoma inteiro, ver `../Metanalise/baseline_controle/`) e só
 diluía o desenho sem ganho biológico — a metanálise principal passou a usar
 IFNα2h puro (estado ativo do ISGF3). O núcleo XPC∩STAT1∩STAT2∩IRF9 (8 genes)
 é **idêntico** entre este design antigo e o atual — a mudança não alterou o
@@ -30,6 +30,6 @@ caem exatamente sobre a mesma coordenada de STAT/IRF9/ELK1; a relação real só
 aparece no nível de gene mais próximo (arquivos `gene_sets_*`/`genes_comuns_*`
 deste mesmo diretório).
 
-**Conteúdo:** estrutura igual a `meta_geral/` (gene_sets, jaccard de gene,
+**Conteúdo:** estrutura igual a `Metanalise/principal_sem_normalizacao/` (gene_sets, jaccard de gene,
 upset, venn, combinações + `interseccoes/<combo>/`), mais os 3 arquivos de
 Jaccard por região citados acima.

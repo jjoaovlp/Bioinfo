@@ -10,8 +10,8 @@ correção fez o esperado:
   Gained/Lost/Stable, MA-plot e distribuição de logCPM do diffbind do XPC,
   antes (`--nolambda`, sem TMM) vs depois (input pareado + TMM).
 - **`gene_sets_prepos_topN.{png,csv}`**, **`jaccard_prepos_topN_
-  {nearest,promotor}.png`** — tamanho dos gene-sets e Jaccard, `meta_geral/`
-  (full) vs `meta_topN/` (top-1000).
+  {nearest,promotor}.png`** — tamanho dos gene-sets e Jaccard, `Metanalise/principal_sem_normalizacao/`
+  (full) vs `Metanalise/principal_normalizado_topN/` (top-1000).
 - **`fragmentsize_comparativo.png`**, **`qc_metricas_painel.png`**,
   **`qc_metricas_todas_amostras.csv`** — comprimento de fragmento e painel
   multi-métrica (SSD, fragment length, nº de picos, profundidade pós-filtro,

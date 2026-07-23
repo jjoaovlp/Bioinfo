@@ -5,7 +5,8 @@ até redes regulatórias multi-fator de transcrição e metanálise cross-prote�
 [`CLAUDE.md`](CLAUDE.md) para o registro completo do projeto (histórico, decisões
 metodológicas, dependências, checklist de validação e pendências) e
 [`Analises/RESUMO_METANALISE.md`](Analises/RESUMO_METANALISE.md) para os resultados
-da metanálise.
+da metanálise e [`Analises/README.md`](Analises/README.md) para o índice de pastas
+(análise do XPC vs metanálise cross-proteína).
 
 ## O experimento
 
@@ -63,8 +64,8 @@ H3K4me3 do WT, pareado por timepoint — ver `CLAUDE.md` §9.1-REVISÃO.
 
 | Condição | GSMs | Alinhado/filtrado? | Peak-called? | Usado em |
 |---|---|---|---|---|
-| Untreated (UN) | 563, 564 | Sim | Sim | `Analises/meta_baseline/` (controle) |
-| IFNα 2h | 567, 568 | Sim | Sim | `Analises/meta_geral/` + `meta_topN/` (**estado ativo da metanálise principal**) |
+| Untreated (UN) | 563, 564 | Sim | Sim | `Analises/Metanalise/baseline_controle/` (controle) |
+| IFNα 2h | 567, 568 | Sim | Sim | `Analises/Metanalise/principal_sem_normalizacao/` + `Metanalise/principal_normalizado_topN/` (**estado ativo da metanálise principal**) |
 | IFNα 0.5h/8h/24h/72h | 565,566,569-574 | Sim | **Não** | Não usado — disponível para uma futura análise de cinética |
 | IFNγ 0.5h/4h/24h/72h | 575-582 | Sim | **Não** | Não usado — estímulo biologicamente distinto (GAS vs ISGF3), fora do escopo atual |
 
@@ -72,8 +73,8 @@ H3K4me3 do WT, pareado por timepoint — ver `CLAUDE.md` §9.1-REVISÃO.
 
 | Condição | GSMs | Alinhado/filtrado? | Peak-called? | Usado em |
 |---|---|---|---|---|
-| WT untreated | 583, 584 | Sim | Sim | `meta_baseline/` |
-| WT IFNα 2h | 587, 588 | Sim | Sim | `meta_geral/` + `meta_topN/` (**estado ativo**) |
+| WT untreated | 583, 584 | Sim | Sim | `Metanalise/baseline_controle/` |
+| WT IFNα 2h | 587, 588 | Sim | Sim | `Metanalise/principal_sem_normalizacao/` + `Metanalise/principal_normalizado_topN/` (**estado ativo**) |
 | WT IFNα 0.5h/8h/24h/72h | 585,586,589-594 | Sim | **Não** | Não usado |
 | **STAT1-KO** (untreated/2h/24h/72h) | GSM7899570-591 (8 ChIP + 4 input) | Sim | **Não** | **Não usado — diffbind WT-vs-STAT1-KO nunca executado neste projeto**, apesar de `run_diffbind_standard()` (Módulo 08) já suportar esse fluxo |
 
@@ -81,8 +82,8 @@ H3K4me3 do WT, pareado por timepoint — ver `CLAUDE.md` §9.1-REVISÃO.
 
 | Condição | GSMs | Alinhado/filtrado? | Peak-called? | Usado em |
 |---|---|---|---|---|
-| Untreated (UN) | 595, 596 | Sim | Sim | `meta_baseline/` |
-| IFNα 2h | 599, 600 | Sim | Sim | `meta_geral/` + `meta_topN/` (**estado ativo**) |
+| Untreated (UN) | 595, 596 | Sim | Sim | `Metanalise/baseline_controle/` |
+| IFNα 2h | 599, 600 | Sim | Sim | `Metanalise/principal_sem_normalizacao/` + `Metanalise/principal_normalizado_topN/` (**estado ativo**) |
 | IFNα 0.5h/8h/24h/72h, IFNγ (todos) | 597,598,601-614 | **Não** (nunca baixado) | — | Não usado |
 
 Nota: IRF9 está listado em `chipseq_metadata_filtered_out.csv`, não no metadata
@@ -93,7 +94,7 @@ metanálise mesmo assim, pois os picos UN/IFNα2h existem e são de boa qualidad
 
 | Condição | GSMs | Usado em |
 |---|---|---|
-| Constitutivo (única condição) | 2423754, 2423755 | Todas as análises (`meta_geral`, `meta_topN`, rede) — nunca varia entre elas |
+| Constitutivo (única condição) | 2423754, 2423755 | Todas as análises (`Metanalise/principal_sem_normalizacao`, `Metanalise/principal_normalizado_topN`, `Metanalise/rede_regulatoria`) — nunca varia entre elas |
 
 Genoma nativo hg19 → liftOver para hg38 (Módulo 12), único dataset que precisou
 dessa conversão.
@@ -139,15 +140,15 @@ Duas visões por proteína, sempre `TxDb.Hsapiens.UCSC.hg38.knownGene` +
   `"Promoter"` (±3kb do TSS) — mais específico, usado como visão principal
   nas figuras/tabelas de interseção.
 
-### Metanálise cross-proteína (`Analises/meta_geral/` e `meta_topN/`)
+### Metanálise cross-proteína (`Analises/Metanalise/principal_sem_normalizacao/` e `Metanalise/principal_normalizado_topN/`)
 
 - **Seleção de estado por proteína** (revisada 2026-07-22): XPC = pooled WT
   (10 amostras, 3 timepoints); STAT1/STAT2/IRF9 = **só IFNα 2h** (2 réplicas
   cada); ELK1 = constitutivo (2 réplicas). O "untreated" foi removido do pool
   principal porque contribui sinal quase nulo (STAT2 UN = 5 regiões no genoma
-  inteiro) — fica isolado em `meta_baseline/` como controle.
-- **Duas normalizações de tamanho de gene-set**: `meta_geral/` usa todos os
-  picos do estado ativo; `meta_topN/` restringe a **top-1000 picos por
+  inteiro) — fica isolado em `Metanalise/baseline_controle/` como controle.
+- **Duas normalizações de tamanho de gene-set**: `Metanalise/principal_sem_normalizacao/` usa todos os
+  picos do estado ativo; `Metanalise/principal_normalizado_topN/` restringe a **top-1000 picos por
   proteína** (rankeados por `signalValue` do MACS3) antes de anotar — nivela
   STAT1/STAT2 (que saturam com ~19-20 mil genes-alvo no nearest gene) ao
   mesmo patamar de XPC (817)/IRF9 (921)/ELK1 (212, inalterado por já ter <1000
@@ -157,7 +158,7 @@ Duas visões por proteína, sempre `TxDb.Hsapiens.UCSC.hg38.knownGene` +
   massiva do complexo ISGF3), muito mais que XPC/IRF9/ELK1. Interseções
   amplas envolvendo STAT (sem restringir a promotor ou usar o topN) tendem a
   ser dominadas pelo volume de picos do STAT, não necessariamente por
-  co-ligação biológica real — por isso a versão `meta_topN/` existe, como
+  co-ligação biológica real — por isso a versão `Metanalise/principal_normalizado_topN/` existe, como
   checagem de robustez.
 - **Núcleo XPC∩STAT1∩STAT2∩IRF9 (8 genes)**: estável entre o design antigo
   (UN+IFNα2h pooled) e o novo (só IFNα2h) — não é um artefato da seleção de
@@ -173,7 +174,7 @@ interferon que 3h simplesmente porque o consenso pooled do XPC é dominado por
 GSM6600715 (0h) — não é evidência de que XPC∩interferon seja específico do
 timepoint 0h biologicamente, é um reflexo de qual réplica teve ChIP funcional.
 
-### Rede regulatória (`Analises/rede/`)
+### Rede regulatória (`Analises/Metanalise/rede_regulatoria/`)
 
 Rede bipartida Proteína→Região→Gene sobre a matriz de ocupação binária
 (Módulo 14, `XPC_WT`/`STAT1_WT`/`STAT2_WT`/`IRF9_WT`/`ELK1_WT` — pool "WT"
@@ -188,7 +189,7 @@ não a seleção "só IFNα2h" adotada na metanálise principal em 2026-07-22 �
 rede não foi re-gerada com o novo pool porque o pedido explícito da revisão
 era sobre a metanálise de gene-sets, não sobre a rede. Isso é uma
 inconsistência conhecida entre as duas análises, documentada aqui para quem
-for comparar números diretamente entre `Analises/rede/` e `Analises/meta_geral/`.
+for comparar números diretamente entre `Analises/Metanalise/rede_regulatoria/` e `Analises/Metanalise/principal_sem_normalizacao/`.
 
 ## Resumo do pipeline (22 módulos)
 
@@ -250,29 +251,39 @@ XPC_metaChIP/
 └── README.md
 ```
 
-### Estrutura de `Analises/` (reorganizada em 2026-07-22)
+### Estrutura de `Analises/` (reorganizada em 2026-07-22, refinada em seguida)
 
-Uma pasta por análise, com todos os arquivos e figuras daquela análise juntos
-(sem separar por Arquivos/Figuras):
+Separada em dois grandes ramos — **`XPC/`** (análises de uma proteína só,
+não cruzam com as demais) e **`Metanalise/`** (tudo que cruza 2+ proteínas)
+— mais `qc_comparativo/`, que é transversal aos dois. Cada subpasta tem seu
+próprio `README.md` dizendo se tem normalização (TMM/top-N) e quais
+amostras/estado usa:
 
 ```
 Analises/
-├── RESUMO_METANALISE.md         # relatório completo da metanálise
-├── meta_geral/                   # metanálise principal (IFNα2h, full)
-│   ├── gene_sets_*, jaccard_*, upset_*.png, venn_*.png
-│   └── interseccoes/<combo>/     # 1 pasta por combinação (2-5 proteínas):
-│       genes_{nearest,promotor}.txt + {nearest,promotor}_{go,kegg,reactome,hallmark}.csv + dotplots
-├── meta_topN/                    # igual acima, top-1000 picos/proteína por signalValue
-├── meta_baseline/                 # controle: só amostras untreated
-├── meta_geral_ANTES_revisao/      # análise ORIGINAL (pré 2026-07-22, UN+IFNα2h pooled) — legado, não apagado
-│   └── interseccoes/<combo>/
-├── XPC/                           # tudo que é análise individual do XPC
-│   ├── individual/                # enriquecimento/anotação por timepoint e geral
-│   ├── timepoints/                 # metanálise XPC 0h/3h vs eixo interferon
-│   ├── nucleo/                     # núcleo XPC∩STAT1∩STAT2∩IRF9 (8 genes) + enriquecimento
-│   └── diffbind/                   # WT vs XPC-KO (re-call + TMM) + backups pré-revisão
-├── rede/                           # rede bipartida (score≥2 completa + score≥3 focada) + GraphML
-└── qc_comparativo/                 # figuras pré/pós normalização + painel de métricas por amostra
+├── RESUMO_METANALISE.md
+│
+├── XPC/                              # SÓ XPC (nenhuma interseção com outras proteínas)
+│   ├── individual/                    # anotação + enriquecimento por timepoint e geral
+│   ├── timepoints/                    # XPC 0h vs 3h, cada um contra o eixo interferon
+│   └── diffbind/                      # WT vs XPC-KO
+│       ├── atual_input_pareado_TMM/   # vigente: input pareado + TMM
+│       └── ANTES_nolambda_semTMM/     # legado: --nolambda, sem TMM
+│
+├── Metanalise/                        # TUDO que cruza 2+ proteínas
+│   ├── principal_sem_normalizacao/    # estado ativo (IFNα2h), todos os picos
+│   │   ├── gene_sets_*, jaccard_*, upset_*.png, venn_*.png
+│   │   └── interseccoes/<combo>/      # 1 pasta por combinação (2-5 proteínas):
+│   │       genes_{nearest,promotor}.txt + {nearest,promotor}_{go,kegg,reactome,hallmark}.csv + dotplots
+│   ├── principal_normalizado_topN/    # igual acima, top-1000 picos/proteína por signalValue
+│   ├── baseline_controle/             # controle: só amostras untreated
+│   ├── design_anterior_pre_revisao/   # design ORIGINAL (pré 2026-07-22, UN+IFNα2h pooled) — legado
+│   │   └── interseccoes/<combo>/
+│   ├── nucleo_XPC_interferon/         # destaque: os 8 genes XPC∩STAT1∩STAT2∩IRF9 + enriquecimento
+│   └── rede_regulatoria/              # rede bipartida Proteína→Região→Gene (score≥2 e score≥3)
+│
+└── qc_comparativo/                    # figuras pré/pós normalização + painel de métricas por amostra
+                                        # (cruza XPC e Metanalise, por isso fica fora dos dois ramos)
 ```
 
 Dados brutos grandes (FASTQ/BAM/BigWig) nunca são versionados — ver `.gitignore` na

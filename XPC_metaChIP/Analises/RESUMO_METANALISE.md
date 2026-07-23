@@ -9,18 +9,18 @@ untreated+IFNα2h pooled). Em 2026-07-22 essa análise foi **revisada e substitu
 como principal, por decisão do usuário, após diagnóstico de desbalanço severo entre
 proteínas (STAT1/STAT2 saturando com 40-62 mil picos no IFNα2h, XPC/IRF9/ELK1 na
 casa das centenas). O conteúdo original **não foi apagado** — foi movido para
-`Analises/meta_geral_ANTES_revisao/` (arquivos + figuras + enriquecimento por
+`Analises/Metanalise/design_anterior_pre_revisao/` (arquivos + figuras + enriquecimento por
 combinação), preservado como registro histórico/auditoria. Todas as referências de
 caminho nas seções 1–10 abaixo (`Arquivos/metanalise/...`, `Figuras/metanalise/...`,
 `Arquivos/enrichment/...`) apontam para essa pasta legada, não para a estrutura atual.
 
-**O que mudou na análise principal (agora em `Analises/meta_geral/`):**
+**O que mudou na análise principal (agora em `Analises/Metanalise/principal_sem_normalizacao/`):**
 - STAT1/STAT2/IRF9 passam a usar **só IFNα 2h** (estado ativo puro), descartando o
   "untreated" que estava no pool. XPC continua pooled (10 WT, 0h+1h+3h); ELK1
   continua constitutivo (2 ENCODE). Motivo: o "untreated" quase não contribuía
   sinal (STAT2 UN = 5 regiões no genoma inteiro, ver seção 9) e só diluía o
   desenho sem ganho biológico.
-- Nova variante **top-N** (`Analises/meta_topN/`, N=1000 picos por proteína
+- Nova variante **top-N** (`Analises/Metanalise/principal_normalizado_topN/`, N=1000 picos por proteína
   rankeados por `signalValue` do MACS3): reduz STAT1 de ~19.9k→927 genes
   (nearest) e STAT2 de ~18.5k→919, deixando-os na mesma ordem de grandeza de
   XPC (817)/IRF9 (921)/ELK1 (212 — inalterado, já tinha <1000 picos). Serve
@@ -38,15 +38,15 @@ caminho nas seções 1–10 abaixo (`Arquivos/metanalise/...`, `Figuras/metanali
   0 picos nas 3 réplicas, mesma causa em qualquer análise, não é bug da
   metanálise). 0h∩interferon é muito maior que 3h∩interferon porque o
   consenso XPC-WT é dominado por GSM6600715 (0h) — ver seção 8 abaixo.
-- **Rede bipartida em `occupancy_score≥3`** (1462 regiões, `Analises/rede/`):
+- **Rede bipartida em `occupancy_score≥3`** (1462 regiões, `Analises/Metanalise/rede_regulatoria/`):
   inclui todas as regiões, rotula só os 9 genes de score 4 + top-5 de score 3
   por `signalValue` (interferon-stimulated genes clássicos: MX1, IRF9, RIGI,
   HERC6, DDX60).
 - **Nova organização de pastas**: tudo em `Analises/`, uma pasta por
-  interseção de genes (`Analises/meta_geral/interseccoes/<combo>/`,
-  `Analises/meta_topN/interseccoes/<combo>/`), tudo do XPC junto
-  (`Analises/XPC/{individual,timepoints,nucleo,diffbind}/`), baseline em
-  `Analises/meta_baseline/`, figuras comparativas pré/pós em
+  interseção de genes (`Analises/Metanalise/principal_sem_normalizacao/interseccoes/<combo>/`,
+  `Analises/Metanalise/principal_normalizado_topN/interseccoes/<combo>/`), tudo do XPC junto
+  (`Analises/XPC/{individual,timepoints,diffbind}/` (núcleo movido para `Analises/Metanalise/nucleo_XPC_interferon/`)), baseline em
+  `Analises/Metanalise/baseline_controle/`, figuras comparativas pré/pós em
   `Analises/qc_comparativo/`.
 - **Venns de 5 conjuntos com ELK1 removidos** (`venn_untreated_*_5proteinas.png`)
   — o usuário achou o resultado mais legível só com 4 conjuntos (ELK1
@@ -58,14 +58,14 @@ caminho nas seções 1–10 abaixo (`Arquivos/metanalise/...`, `Figuras/metanali
 **Organização adicional (mesmo dia, reorganização fina):** cada subpasta de
 `Analises/` ganhou um `README.md` próprio indicando explicitamente se o
 conteúdo tem normalização (TMM/top-N) ou não, e quais amostras/estado por
-proteína — ver `meta_geral/README.md`, `meta_topN/README.md`,
-`meta_baseline/README.md`, `meta_geral_ANTES_revisao/README.md`,
-`XPC/README.md`, `XPC/diffbind/README.md`, `rede/README.md`,
+proteína — ver `Metanalise/principal_sem_normalizacao/README.md`, `Metanalise/principal_normalizado_topN/README.md`,
+`Metanalise/baseline_controle/README.md`, `Metanalise/design_anterior_pre_revisao/README.md`,
+`XPC/README.md`, `XPC/diffbind/README.md`, `Metanalise/rede_regulatoria/README.md`,
 `qc_comparativo/README.md`. `XPC/diffbind/` foi dividido em
 `atual_input_pareado_TMM/` (vigente) vs `ANTES_nolambda_semTMM/` (legado) —
 antes os dois conjuntos ficavam misturados na mesma pasta, só diferenciados
 pelo sufixo do nome do arquivo. Também recuperados para
-`meta_geral_ANTES_revisao/` os arquivos de Jaccard **por região** (não por
+`Metanalise/design_anterior_pre_revisao/` os arquivos de Jaccard **por região** (não por
 gene) do antigo Módulo 15/16 (`jaccard_regiao_pairwise.csv`,
 `jaccard_heatmap_regiao.png`, `regioes_compartilhadas_todas_proteinas.csv`),
 que tinham ficado para trás em `Arquivos/overlap/`/`Figuras/overlap/` na
@@ -74,7 +74,7 @@ reorganização anterior.
 ---
 
 Todos os dados brutos (CSV/TXT) da versão ORIGINAL (pré-revisão) estão em
-`Analises/meta_geral_ANTES_revisao/`.
+`Analises/Metanalise/design_anterior_pre_revisao/`.
 
 ## 1. Amostras e genes-alvo por proteína
 
@@ -164,7 +164,8 @@ interferon foi capturada corretamente pelo peak calling, mesmo fora do núcleo c
 
 ## 5. Núcleo XPC ∩ eixo interferon completo — os 8 genes centrais
 
-`genes_nucleo_XPC_interferon.txt`:
+`Analises/Metanalise/nucleo_XPC_interferon/genes_nucleo_XPC_interferon.txt`
+(idêntico ao design antigo e ao atual — ver §0):
 
 **ARHGAP29-AS1, IFI44L, LOC105371874, MEF2A, MIR21, PHACTR4, RIGI, SLC1A3**
 

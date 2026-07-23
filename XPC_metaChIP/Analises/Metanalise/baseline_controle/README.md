@@ -1,6 +1,6 @@
-# meta_baseline — controle, amostras SEM tratamento (untreated)
+# Metanalise/baseline_controle — controle, amostras SEM tratamento (untreated)
 
-**Normalização:** nenhuma (mesma lógica de `meta_geral/`, sem restrição
+**Normalização:** nenhuma (mesma lógica de `Metanalise/principal_sem_normalizacao/`, sem restrição
 top-N) — a diferença aqui é a **seleção de amostras**, não a normalização.
 
 **Amostras/estado por proteína:**

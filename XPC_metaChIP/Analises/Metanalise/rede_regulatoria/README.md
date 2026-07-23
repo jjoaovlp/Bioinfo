@@ -4,11 +4,11 @@
 
 **Amostras/estado por proteína:** `XPC_WT`/`STAT1_WT`/`STAT2_WT`/`IRF9_WT`/
 `ELK1_WT` — pool do Módulo 13/14 (**UN+IFNα2h**, o mesmo do design
-`../meta_geral_ANTES_revisao/`, **não** a seleção "só IFNα2h" da metanálise
+`../Metanalise/design_anterior_pre_revisao/`, **não** a seleção "só IFNα2h" da metanálise
 principal atual). Isso não foi atualizado na revisão de 2026-07-22 porque o
 pedido era sobre os gene-sets da metanálise, não sobre a rede — ver nota de
 consistência no `README.md` do projeto antes de comparar números entre
-`rede/` e `meta_geral/`.
+`rede/` e `Metanalise/principal_sem_normalizacao/`.
 
 **Conteúdo:**
 - `bipartite_network.graphml`/`.png` + `bipartite_edges.csv`/
