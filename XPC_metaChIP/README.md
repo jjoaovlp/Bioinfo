@@ -28,6 +28,168 @@ usam H3K4me3 (mesma linhagem/timepoint) como substituto de input; XPC-KO usa ess
 corrigida em 2026-07-22 após o `--nolambda` original gerar background massivo); STAT1/
 STAT2/IRF9/ELK1 usam input próprio do estudo original.
 
+## Desenho experimental detalhado — amostras por proteína e por etapa
+
+Cada proteína passou por um subconjunto diferente de etapas (nem toda amostra
+baixada chegou a ser peak-called; nem todo peak-calling entrou na metanálise
+principal). A tabela abaixo mostra exatamente onde cada amostra parou.
+
+### XPC — GSE214182 (U2OS, WT vs XPC-KO vs ASH1L-KO, 0h/1h/3h pós-UV)
+
+| Genótipo | Timepoint | GSMs | Alinhado/filtrado? | Peak-called? | N picos | Usado em |
+|---|---|---|---|---|---|---|
+| WT | 0h | 715,716,717,718 | Sim | Sim (broad, com input) | 1462, 0, 0, 7 | Consenso pooled (metanálise) + `XPC_0h` (timepoints) |
+| WT | 1h | 724,725,726 | Sim | Sim | 0, 0, 0 | Consenso pooled — **contribui 0 regiões** |
+| WT | 3h | 732,733,734 | Sim | Sim | 0, 109, 0 | Consenso pooled + `XPC_3h` (timepoints) |
+| **XPC-KO** | 0h | 722,723 | Sim | Sim (revisado 2026-07-22) | 0, 4 | Diffbind (WT vs KO) |
+| **XPC-KO** | 1h | 730,731 | Sim | Sim (revisado) | 0, 5 | Diffbind |
+| **XPC-KO** | 3h | 738,739 | Sim | Sim (revisado) | 0, 8 | Diffbind |
+| ASH1L-KO | 0h/1h/3h | 719-721,727-729,735-737 | **Não** (nunca baixado/alinhado) | — | — | Não usado (citado no metadata como comparação secundária, nunca executado) |
+| Input H3K4me3 (substituto) | 0h/1h/3h | 680, 686, 692 | Sim | — (usado só como `-c` do MACS3) | — | Input pareado por timepoint para WT e XPC-KO |
+
+**Ponto de atenção nº1 — heterogeneidade do ChIP-WT**: das 10 réplicas WT, só
+**3 produzem picos** (715, 718, 733); as outras 7 dão 0, inclusive **as 3 de 1h
+inteiras**. Confirmado com teste de sanidade (q=0.5, muito mais permissivo) que
+não é limiar — é ausência real de estrutura de enriquecimento. Consequência:
+o consenso pooled usado na metanálise principal é **dominado por GSM6600715**
+(0h). Ver `Analises/RESUMO_METANALISE.md` §8 para o diagnóstico completo.
+
+**Ponto de atenção nº2 — peak calling do XPC-KO revisado**: até 2026-07-13 o
+XPC-KO rodava com `--nolambda` (sem controle), gerando 250 mil+ picos de
+background por amostra. Revisado em 2026-07-22 para usar o mesmo input
+H3K4me3 do WT, pareado por timepoint — ver `CLAUDE.md` §9.1-REVISÃO.
+
+### STAT1 — GSE222667 (Huh7.5, WT, sem KO)
+
+| Condição | GSMs | Alinhado/filtrado? | Peak-called? | Usado em |
+|---|---|---|---|---|
+| Untreated (UN) | 563, 564 | Sim | Sim | `Analises/meta_baseline/` (controle) |
+| IFNα 2h | 567, 568 | Sim | Sim | `Analises/meta_geral/` + `meta_topN/` (**estado ativo da metanálise principal**) |
+| IFNα 0.5h/8h/24h/72h | 565,566,569-574 | Sim | **Não** | Não usado — disponível para uma futura análise de cinética |
+| IFNγ 0.5h/4h/24h/72h | 575-582 | Sim | **Não** | Não usado — estímulo biologicamente distinto (GAS vs ISGF3), fora do escopo atual |
+
+### STAT2 — GSE222667 (WT) + GSE247724 (STAT1-KO)
+
+| Condição | GSMs | Alinhado/filtrado? | Peak-called? | Usado em |
+|---|---|---|---|---|
+| WT untreated | 583, 584 | Sim | Sim | `meta_baseline/` |
+| WT IFNα 2h | 587, 588 | Sim | Sim | `meta_geral/` + `meta_topN/` (**estado ativo**) |
+| WT IFNα 0.5h/8h/24h/72h | 585,586,589-594 | Sim | **Não** | Não usado |
+| **STAT1-KO** (untreated/2h/24h/72h) | GSM7899570-591 (8 ChIP + 4 input) | Sim | **Não** | **Não usado — diffbind WT-vs-STAT1-KO nunca executado neste projeto**, apesar de `run_diffbind_standard()` (Módulo 08) já suportar esse fluxo |
+
+### IRF9 — GSE222667 (Huh7.5, WT)
+
+| Condição | GSMs | Alinhado/filtrado? | Peak-called? | Usado em |
+|---|---|---|---|---|
+| Untreated (UN) | 595, 596 | Sim | Sim | `meta_baseline/` |
+| IFNα 2h | 599, 600 | Sim | Sim | `meta_geral/` + `meta_topN/` (**estado ativo**) |
+| IFNα 0.5h/8h/24h/72h, IFNγ (todos) | 597,598,601-614 | **Não** (nunca baixado) | — | Não usado |
+
+Nota: IRF9 está listado em `chipseq_metadata_filtered_out.csv`, não no metadata
+principal (filtrado por critério de QC do Módulo 02) — usado manualmente na
+metanálise mesmo assim, pois os picos UN/IFNα2h existem e são de boa qualidade.
+
+### ELK1 — GSE91923 (A549, ENCODE ENCSR623KNM)
+
+| Condição | GSMs | Usado em |
+|---|---|---|
+| Constitutivo (única condição) | 2423754, 2423755 | Todas as análises (`meta_geral`, `meta_topN`, rede) — nunca varia entre elas |
+
+Genoma nativo hg19 → liftOver para hg38 (Módulo 12), único dataset que precisou
+dessa conversão.
+
+## Metodologia por etapa — decisões e pontos de atenção
+
+### Peak calling (Módulo 07 — MACS3 via WSL)
+
+- **Broad** (XPC) vs **narrow** (STAT1/STAT2/IRF9/ELK1) — `q=0.01`, broad-cutoff
+  `0.1` quando aplicável (`Scripts/config/peakcalling_config.R`).
+- **Input**: todas as amostras rodam **com** controle (`-c`), nunca `--nolambda`
+  por omissão — a coluna `Input` do metadata decide, nunca é assumida
+  (`determine_macs3_args()`). Única exceção histórica: XPC-KO, corrigida em
+  2026-07-22 (ver acima).
+- **Fallback `--nomodel`**: usado quando o MACS3 não consegue construir o
+  modelo de picos pareados (sinal fraco demais) — usa o comprimento de
+  fragmento estimado no Módulo 06 (cross-correlation) como `--extsize`.
+  Aplicado em várias réplicas fracas de XPC-WT e nos 6 XPC-KO re-chamados.
+
+### Differential binding (Módulo 08 — `csaw`/`edgeR` para XPC, `DiffBind` para STAT2)
+
+- **XPC (WT vs XPC-KO)**: região consenso (`GenomicRanges::reduce()` da união
+  WT∪KO) + contagem de reads via `csaw::regionCounts()` + teste por edgeR
+  (`glmQLFTest`), **não** por presença/ausência de pico — necessário porque o
+  KO tem ChIP mais fraco por design (sem proteína pra imunoprecipitar).
+  **TMM adicionado em 2026-07-22** (`edgeR::calcNormFactors()`).
+  Resultado atual: 1576 regiões consenso, **0 Gained / 0 Lost / 1576 Stable**
+  (nenhuma diferença sobrevive a FDR<0.05) — resultado nulo honesto, não bug;
+  reflexo direto da heterogeneidade do ChIP-WT (ponto de atenção acima).
+- **STAT2 (WT vs STAT1-KO)**: fluxo padrão `DiffBind` (`dba.count()` →
+  `dba.normalize(normalize=DBA_NORM_TMM)` → `dba.analyze()`) — **implementado
+  mas nunca executado** neste projeto (os BAMs do STAT1-KO existem, os picos
+  não foram gerados).
+- **ELK1 e STAT1**: fora do Módulo 08 por design — nenhum dos dois tem braço
+  deficiente/KO disponível.
+
+### Anotação (Módulo 09 — ChIPseeker)
+
+Duas visões por proteína, sempre `TxDb.Hsapiens.UCSC.hg38.knownGene` +
+`org.Hs.eg.db`, `tssRegion=c(-3000,3000)`:
+- **Nearest gene**: gene mais próximo de cada pico, qualquer distância.
+- **Promotor**: subconjunto restrito a `annotation` começando com
+  `"Promoter"` (±3kb do TSS) — mais específico, usado como visão principal
+  nas figuras/tabelas de interseção.
+
+### Metanálise cross-proteína (`Analises/meta_geral/` e `meta_topN/`)
+
+- **Seleção de estado por proteína** (revisada 2026-07-22): XPC = pooled WT
+  (10 amostras, 3 timepoints); STAT1/STAT2/IRF9 = **só IFNα 2h** (2 réplicas
+  cada); ELK1 = constitutivo (2 réplicas). O "untreated" foi removido do pool
+  principal porque contribui sinal quase nulo (STAT2 UN = 5 regiões no genoma
+  inteiro) — fica isolado em `meta_baseline/` como controle.
+- **Duas normalizações de tamanho de gene-set**: `meta_geral/` usa todos os
+  picos do estado ativo; `meta_topN/` restringe a **top-1000 picos por
+  proteína** (rankeados por `signalValue` do MACS3) antes de anotar — nivela
+  STAT1/STAT2 (que saturam com ~19-20 mil genes-alvo no nearest gene) ao
+  mesmo patamar de XPC (817)/IRF9 (921)/ELK1 (212, inalterado por já ter <1000
+  picos).
+- **Ponto de atenção — desbalanço STAT vs demais**: mesmo restrito a IFNα2h,
+  STAT1/STAT2 continuam gerando dezenas de milhares de picos (ativação
+  massiva do complexo ISGF3), muito mais que XPC/IRF9/ELK1. Interseções
+  amplas envolvendo STAT (sem restringir a promotor ou usar o topN) tendem a
+  ser dominadas pelo volume de picos do STAT, não necessariamente por
+  co-ligação biológica real — por isso a versão `meta_topN/` existe, como
+  checagem de robustez.
+- **Núcleo XPC∩STAT1∩STAT2∩IRF9 (8 genes)**: estável entre o design antigo
+  (UN+IFNα2h pooled) e o novo (só IFNα2h) — não é um artefato da seleção de
+  estado.
+
+### XPC por timepoint (`Analises/XPC/timepoints/`)
+
+Metanálise separada por timepoint (0h e 3h como âncoras distintas contra o
+eixo interferon IFNα2h) em vez do consenso pooled único. 1h fica documentado
+como vazio (0 picos nas 3 réplicas — mesma causa do peak calling por amostra,
+não é um artefato da metanálise). 0h tem interseção muito maior com o eixo
+interferon que 3h simplesmente porque o consenso pooled do XPC é dominado por
+GSM6600715 (0h) — não é evidência de que XPC∩interferon seja específico do
+timepoint 0h biologicamente, é um reflexo de qual réplica teve ChIP funcional.
+
+### Rede regulatória (`Analises/rede/`)
+
+Rede bipartida Proteína→Região→Gene sobre a matriz de ocupação binária
+(Módulo 14, `XPC_WT`/`STAT1_WT`/`STAT2_WT`/`IRF9_WT`/`ELK1_WT` — pool "WT"
+histórico do Módulo 13/14, **anterior** à revisão de estado da metanálise
+principal, ver nota abaixo). Duas versões: completa (score≥2, ilegível como
+imagem estática por volume) e focada em `occupancy_score≥3` (1462 regiões,
+rótulos só nos 9 genes de score 4 + top-5 de score 3 por `signalValue`).
+
+**Nota de consistência**: as colunas `STAT1_WT`/`STAT2_WT`/`IRF9_WT` da matriz
+de ocupação (Módulos 13/14/17) usam o pool **UN+IFNα2h** (4 réplicas cada),
+não a seleção "só IFNα2h" adotada na metanálise principal em 2026-07-22 — a
+rede não foi re-gerada com o novo pool porque o pedido explícito da revisão
+era sobre a metanálise de gene-sets, não sobre a rede. Isso é uma
+inconsistência conhecida entre as duas análises, documentada aqui para quem
+for comparar números diretamente entre `Analises/rede/` e `Analises/meta_geral/`.
+
 ## Resumo do pipeline (22 módulos)
 
 `Scripts/00_setup.R` → `22_master_pipeline.R`, cada módulo com uma responsabilidade
@@ -38,28 +200,6 @@ rede de pathways, validação). Substituições R-nativas usadas onde os pacotes
 Bioconductor originalmente previstos (`Rsubread`, `Rbowtie2`) não funcionavam no
 Windows sob Smart App Control — ver `CLAUDE.md` §5/§9 para o histórico completo dessas
 adaptações.
-
-## Metanálise cross-proteína
-
-A metanálise (`Analises/`) cruza os 5 conjuntos de picos por gene-alvo (gene mais
-próximo e promotor ±3kb), Jaccard, interseções completas (todas as 26 combinações de
-2 a 5 proteínas) e enriquecimento funcional (GO/KEGG/Reactome/Hallmark) por
-combinação. Revisada em 2026-07-22 (ver seção "Estrutura de `Analises/`" abaixo e
-`Analises/RESUMO_METANALISE.md` §0 para o que mudou e por quê):
-
-- **Estado ativo por proteína**: XPC = pooled WT (10 amostras, 0h+1h+3h pós-UV);
-  STAT1/STAT2/IRF9 = **só IFNα 2h** (estado ativo puro — o "untreated" foi removido
-  do pool principal por ter sinal quase nulo, ver `meta_baseline/`); ELK1 =
-  constitutivo (2 ENCODE).
-- **Duas normalizações**: `meta_geral/` (todos os picos do estado ativo) e
-  `meta_topN/` (top-1000 picos por `signalValue` MACS3 — nivela STAT1/STAT2, que
-  saturam com 40-62 mil picos no IFNα2h, ao mesmo patamar de XPC/IRF9/ELK1).
-- **XPC por timepoint** (`Analises/XPC/timepoints/`): 0h e 3h como âncoras
-  separadas contra o eixo interferon (1h documentado como vazio — 0 picos nas 3
-  réplicas, causa no peak calling por amostra, não na metanálise).
-- **Baseline/controle** (`Analises/meta_baseline/`): só amostras não-estimuladas —
-  confirma que STAT1/STAT2/IRF9 dependem de ativação por interferon para ocupar
-  cromatina (STAT2 untreated = 5 regiões no genoma inteiro).
 
 ## Como rodar
 
